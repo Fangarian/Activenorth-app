@@ -1903,7 +1903,8 @@
         return;
       }
       if (!confirm('Delete this private group?')) return;
-      await db.from('tour_groups').delete().eq('id', id);
+      const { error } = await db.from('tour_groups').delete().eq('id', id);
+      if (error) { alert('Could not delete group: ' + error.message); return; }
       ensuredDates.delete(date);
       flash('Group deleted');
       loadPlanDay();
