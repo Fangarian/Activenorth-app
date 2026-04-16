@@ -1363,19 +1363,35 @@
           tourGroupId = document.getElementById('private-group-select').value || null;
         } else {
           const today = localDateStr();
-          // Try today first, then tomorrow (guest may sign the evening before)
           for (const searchDate of [today, offsetLocalDate(today, 1)]) {
             const { data: groups, error: gErr } = await db
               .from('tour_groups')
-              .select('id, name')
+              .select('id, expected_guests')
               .eq('date', searchDate)
               .eq('bus_number', selectedBus)
               .eq('group_type', selectedActivity)
-              .order('sort_order', { ascending: true })
-              .limit(1);
+              .order('sort_order', { ascending: true });
 
             if (!gErr && groups && groups.length > 0) {
-              tourGroupId = groups[0].id;
+              if (groups.length === 1 || groups.every(g => g.expected_guests == null)) {
+                tourGroupId = groups[0].id;
+              } else {
+                const { data: sigs } = await db
+                  .from('signatures')
+                  .select('tour_group_id, children')
+                  .in('tour_group_id', groups.map(g => g.id));
+
+                const counts = {};
+                groups.forEach(g => counts[g.id] = 0);
+                (sigs || []).forEach(s => {
+                  if (counts[s.tour_group_id] !== undefined)
+                    counts[s.tour_group_id] += 1 + ((s.children || []).length);
+                });
+
+                const chosen = groups.find(g => g.expected_guests != null && counts[g.id] < g.expected_guests)
+                  || groups.reduce((a, b) => counts[a.id] <= counts[b.id] ? a : b);
+                tourGroupId = chosen.id;
+              }
               break;
             }
           }
