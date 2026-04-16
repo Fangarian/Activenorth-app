@@ -1797,9 +1797,8 @@
         return `<div class="plan-card">
           <div class="plan-card-top">
             <h3>${escHtml(g.name)}</h3>
-            <button onclick="deletePrivateGroup('${g.id}','${date}')" title="Delete group"
-              style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:2px 6px;border-radius:4px;transition:all 0.15s;"
-              onmouseover="this.style.color='#F87171'" onmouseout="this.style.color='var(--muted)'">✕</button>
+            <button class="btn btn-danger" onclick="deletePrivateGroup('${g.id}','${date}')"
+              style="font-size:0.72rem;padding:4px 10px;" title="Delete group">🗑 Delete</button>
           </div>
           <div class="plan-input-wrap">
             <label class="plan-input-label" for="plan-exp-${g.id}">Expected guests</label>
