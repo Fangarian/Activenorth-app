@@ -799,11 +799,15 @@
             <div class="tile-icon">🏔️</div>
             <div class="tile-label">Snowmobile</div>
           </div>
+          <div class="tile" data-val="private" onclick="selectTile('activity', this)">
+            <div class="tile-icon">🔒</div>
+            <div class="tile-label">Private group</div>
+          </div>
         </div>
         <div class="field-error" id="err-activity" style="margin-top:8px;"></div>
       </div>
 
-      <div class="card">
+      <div class="card" id="card-bus">
         <p class="section-title">Departure from Tromsø</p>
         <div class="tile-group" id="tile-bus">
           <div class="tile" data-val="1" onclick="selectTile('bus', this)">
@@ -818,6 +822,14 @@
           </div>
         </div>
         <div class="field-error" id="err-bus" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card" id="card-private-group" style="display:none;">
+        <p class="section-title">Select your group</p>
+        <select id="private-group-select" style="width:100%;padding:13px 14px;border:1px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--hero-bg);color:var(--body);outline:none;">
+          <option value="">Loading groups…</option>
+        </select>
+        <div class="field-error" id="err-private-group" style="margin-top:8px;"></div>
       </div>
 
       <button class="btn btn-primary" id="btn-next-2" onclick="goToStep3()">
@@ -1081,12 +1093,42 @@
     });
 
     // ── Tile selector ────────────────────────────────────────────────────────
-    function selectTile(type, el) {
+    async function selectTile(type, el) {
       const group = document.getElementById('tile-' + type);
       group.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
       el.classList.add('selected');
-      if (type === 'activity') selectedActivity = el.dataset.val;
-      if (type === 'bus')      selectedBus      = parseInt(el.dataset.val);
+
+      if (type === 'activity') {
+        selectedActivity = el.dataset.val;
+        const isPrivate = selectedActivity === 'private';
+        document.getElementById('card-bus').style.display          = isPrivate ? 'none' : '';
+        document.getElementById('card-private-group').style.display = isPrivate ? '' : 'none';
+        if (isPrivate) {
+          selectedBus = null;
+          document.getElementById('tile-bus').querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
+          await loadPrivateGroupOptions();
+        }
+      }
+      if (type === 'bus') selectedBus = parseInt(el.dataset.val);
+    }
+
+    async function loadPrivateGroupOptions() {
+      const sel = document.getElementById('private-group-select');
+      sel.innerHTML = '<option value="">Loading…</option>';
+      const today    = localDateStr();
+      const tomorrow = offsetLocalDate(today, 1);
+      let groups = [];
+      for (const d of [today, tomorrow]) {
+        const { data } = await db.from('tour_groups').select('id, name, date')
+          .eq('date', d).is('bus_number', null).order('sort_order');
+        if (data) groups = groups.concat(data);
+      }
+      if (!groups.length) {
+        sel.innerHTML = '<option value="">No private groups available today</option>';
+        return;
+      }
+      sel.innerHTML = '<option value="">— Select your group —</option>' +
+        groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
     }
 
     // ── Step 2 validation ────────────────────────────────────────────────────
@@ -1130,7 +1172,15 @@
         document.getElementById('err-activity').textContent = '';
       }
 
-      if (!selectedBus) {
+      if (selectedActivity === 'private') {
+        const pgSel = document.getElementById('private-group-select');
+        if (!pgSel.value) {
+          document.getElementById('err-private-group').textContent = 'Please select your group';
+          ok = false;
+        } else {
+          document.getElementById('err-private-group').textContent = '';
+        }
+      } else if (!selectedBus) {
         document.getElementById('err-bus').textContent = 'Please select a departure time';
         ok = false;
       } else {
@@ -1309,21 +1359,25 @@
       // Find matching tour group
       let tourGroupId = null;
       try {
-        const today = localDateStr();
-        // Try today first, then tomorrow (guest may sign the evening before)
-        for (const searchDate of [today, offsetLocalDate(today, 1)]) {
-          const { data: groups, error: gErr } = await db
-            .from('tour_groups')
-            .select('id, name')
-            .eq('date', searchDate)
-            .eq('bus_number', selectedBus)
-            .eq('group_type', selectedActivity)
-            .order('sort_order', { ascending: true })
-            .limit(1);
+        if (selectedActivity === 'private') {
+          tourGroupId = document.getElementById('private-group-select').value || null;
+        } else {
+          const today = localDateStr();
+          // Try today first, then tomorrow (guest may sign the evening before)
+          for (const searchDate of [today, offsetLocalDate(today, 1)]) {
+            const { data: groups, error: gErr } = await db
+              .from('tour_groups')
+              .select('id, name')
+              .eq('date', searchDate)
+              .eq('bus_number', selectedBus)
+              .eq('group_type', selectedActivity)
+              .order('sort_order', { ascending: true })
+              .limit(1);
 
-          if (!gErr && groups && groups.length > 0) {
-            tourGroupId = groups[0].id;
-            break;
+            if (!gErr && groups && groups.length > 0) {
+              tourGroupId = groups[0].id;
+              break;
+            }
           }
         }
       } catch (_) {}
@@ -1360,10 +1414,12 @@
       document.querySelectorAll('.step-screen').forEach(s => s.classList.remove('active'));
       document.getElementById('screen-success').classList.add('active');
 
-      const actLabel = payload.tour_group_id
-        ? (selectedActivity === 'dog' ? 'Dog Sledding' : 'Snowmobile')
+      const actLabel = selectedActivity === 'private'
+        ? (document.getElementById('private-group-select').options[document.getElementById('private-group-select').selectedIndex]?.text || 'Private group')
         : (selectedActivity === 'dog' ? 'Dog Sledding' : 'Snowmobile');
-      const busLabel = selectedBus === 1 ? 'Daytime (first bus)' : 'Afternoon (second bus)';
+      const busLabel = selectedActivity === 'private'
+        ? 'Private group'
+        : (selectedBus === 1 ? 'Daytime (first bus)' : 'Afternoon (second bus)');
 
       const ts = new Date().toLocaleString('en-GB', {
         day: '2-digit', month: 'short', year: 'numeric',
