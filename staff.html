@@ -1,0 +1,2032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activenorth — Staff Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Rubik:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ── Supabase config ──────────────────────────────────────────────────────
+    const SUPABASE_URL  = 'https://vgqnyapvvjtxguociscl.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZncW55YXB2dmp0eGd1b2Npc2NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTAzMTEsImV4cCI6MjA5MTkyNjMxMX0.7EEBKiWSAWz_2VBlnodRcJRBrgOL5jSdr_EJTdWLCts';
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── Auth config ──────────────────────────────────────────────────────────
+    const USERS = {
+      admin: { password: 'Activenorth2024', role: 'admin' },
+      camp:  { password: 'Activenorth2024',  role: 'camp'  }
+    };
+    // ────────────────────────────────────────────────────────────────────────
+  </script>
+
+  <style>
+    :root {
+      --bg:        #0e1621;
+      --hero-bg:   #1a2840;
+      --card:      #152030;
+      --forest:    #c8dcea;
+      --teal:      #7ba8c2;
+      --green:     #34D399;
+      --green-h:   #10b981;
+      --mint:      #38BDF8;
+      --amber:     #FBBF24;
+      --amber-bg:  rgba(251,191,36,0.1);
+      --border:    rgba(148,196,235,0.1);
+      --body:      #dde8f0;
+      --muted:     #5e88a8;
+      --radius:    8px;
+      --radius-lg: 13px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Rubik', sans-serif;
+      background: var(--bg);
+      color: var(--body);
+      min-height: 100vh;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 90% 55% at 10% 0%, rgba(52,211,153,0.06) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 45% at 90% 105%, rgba(56,189,248,0.06) 0%, transparent 55%);
+      z-index: 0;
+    }
+
+    /* ── Login ──────────────────────────────────────────────────────────── */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: #080f18;
+      background-image:
+        radial-gradient(ellipse 100% 70% at 50% -10%, rgba(52,211,153,0.1) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 85% 110%, rgba(56,189,248,0.08) 0%, transparent 55%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #login-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(148,196,235,0.07) 1px, transparent 1px);
+      background-size: 42px 42px;
+      pointer-events: none;
+    }
+
+    .login-card {
+      background: rgba(21,32,48,0.96);
+      border: 1px solid rgba(148,196,235,0.14);
+      border-radius: 16px;
+      padding: 44px 40px;
+      max-width: 390px;
+      width: 100%;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 28px 64px rgba(0,0,0,0.55), 0 0 0 1px rgba(56,189,248,0.06);
+      position: relative;
+      z-index: 1;
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .login-logo-text {
+      font-family: 'Russo One', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: var(--body);
+      letter-spacing: 0.07em;
+    }
+
+    .login-logo-text span { color: var(--green); }
+
+    .login-card h2 {
+      font-family: 'Russo One', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 400;
+      color: var(--body);
+      margin-bottom: 6px;
+      letter-spacing: 0.03em;
+    }
+
+    .login-card p {
+      color: var(--muted);
+      font-size: 0.87rem;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid rgba(148,196,235,0.5);
+      border-radius: var(--radius);
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.92rem;
+      color: var(--body);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background: rgba(148,196,235,0.1);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .form-group input::placeholder { color: var(--muted); }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(52,211,153,0.12);
+    }
+
+    .login-error {
+      color: #F87171;
+      font-size: 0.82rem;
+      margin-top: 6px;
+      min-height: 18px;
+    }
+
+    /* ── App shell ──────────────────────────────────────────────────────── */
+    #app-shell { display: none; }
+
+    .topbar {
+      background: rgba(8,14,22,0.96);
+      border-bottom: 1px solid rgba(148,196,235,0.09);
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 58px;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      backdrop-filter: blur(10px);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-logo {
+      font-family: 'Russo One', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 400;
+      color: var(--body);
+      letter-spacing: 0.07em;
+    }
+
+    .topbar-logo span { color: var(--green); }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .role-badge {
+      font-size: 0.66rem;
+      font-weight: 600;
+      background: rgba(52,211,153,0.12);
+      color: var(--green);
+      border: 1px solid rgba(52,211,153,0.22);
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+
+    .btn-logout {
+      background: transparent;
+      border: 1px solid rgba(148,196,235,0.16);
+      color: var(--muted);
+      font-size: 0.78rem;
+      padding: 5px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-family: 'Rubik', sans-serif;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .btn-logout:hover {
+      background: rgba(148,196,235,0.08);
+      color: var(--body);
+      border-color: rgba(148,196,235,0.28);
+    }
+
+    /* ── Tab nav ────────────────────────────────────────────────────────── */
+    .tab-nav {
+      background: rgba(10,16,26,0.85);
+      border-bottom: 1px solid rgba(148,196,235,0.08);
+      display: flex;
+      padding: 0 28px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tab-nav::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      padding: 15px 20px;
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 500;
+      color: var(--muted);
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      letter-spacing: 0.01em;
+    }
+
+    .tab-btn:hover { color: var(--body); }
+    .tab-btn.active { color: var(--mint); border-color: var(--mint); }
+    .tab-btn.hidden { display: none; }
+
+    /* ── Content panes ──────────────────────────────────────────────────── */
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .pane-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Shared components ──────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.84rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      letter-spacing: 0.01em;
+    }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+
+    .btn-primary   { background: var(--green); color: #07200f; font-weight: 600; }
+    .btn-primary:hover:not(:disabled) { background: var(--green-h); }
+    .btn-secondary {
+      background: rgba(148,196,235,0.07);
+      color: var(--muted);
+      border: 1px solid rgba(148,196,235,0.14);
+    }
+    .btn-secondary:hover {
+      background: rgba(148,196,235,0.12);
+      color: var(--body);
+      border-color: rgba(148,196,235,0.24);
+    }
+    .btn-danger { background: rgba(248,113,113,0.12); color: #F87171; border: 1px solid rgba(248,113,113,0.22); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-family: 'Russo One', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: var(--muted);
+      margin-bottom: 16px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ── Date header ────────────────────────────────────────────────────── */
+    .date-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .date-header h2 {
+      font-family: 'Russo One', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: var(--body);
+      letter-spacing: 0.04em;
+    }
+
+    .date-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .date-input-wrap input[type="date"] {
+      padding: 8px 13px;
+      border: 1px solid rgba(148,196,235,0.18);
+      border-radius: var(--radius);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      background: rgba(8,15,24,0.8);
+      color: var(--body);
+      outline: none;
+      transition: border-color 0.2s;
+      color-scheme: dark;
+    }
+
+    .date-input-wrap input[type="date"]:focus { border-color: var(--mint); }
+
+    .refresh-info {
+      font-size: 0.73rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Bus banners ────────────────────────────────────────────────────── */
+    .bus-banners {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 640px) {
+      .bus-banners { grid-template-columns: 1fr; }
+    }
+
+    .bus-banner {
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      transition: all 0.3s;
+      background: var(--card);
+    }
+
+    .bus-banner.green {
+      background: rgba(52,211,153,0.05);
+      border-color: rgba(52,211,153,0.28);
+      box-shadow: 0 0 28px rgba(52,211,153,0.08), inset 0 0 0 1px rgba(52,211,153,0.1);
+    }
+
+    .bus-banner.orange {
+      background: rgba(251,191,36,0.05);
+      border-color: rgba(251,191,36,0.28);
+      box-shadow: 0 0 28px rgba(251,191,36,0.07), inset 0 0 0 1px rgba(251,191,36,0.1);
+    }
+
+    .bus-banner.grey {
+      background: rgba(148,196,235,0.02);
+      border-color: rgba(148,196,235,0.07);
+    }
+
+    .banner-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    .bus-banner.green  .banner-dot { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse-green 2.2s infinite; }
+    .bus-banner.orange .banner-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); animation: pulse-amber 2.2s infinite; }
+    .bus-banner.grey   .banner-dot { background: #2c4258; }
+
+    @keyframes pulse-green {
+      0%, 100% { box-shadow: 0 0 5px rgba(52,211,153,0.6); }
+      50%       { box-shadow: 0 0 14px rgba(52,211,153,1), 0 0 26px rgba(52,211,153,0.35); }
+    }
+    @keyframes pulse-amber {
+      0%, 100% { box-shadow: 0 0 5px rgba(251,191,36,0.6); }
+      50%       { box-shadow: 0 0 14px rgba(251,191,36,1), 0 0 26px rgba(251,191,36,0.35); }
+    }
+
+    .banner-info h3 {
+      font-family: 'Russo One', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: var(--body);
+      margin-bottom: 3px;
+      letter-spacing: 0.04em;
+    }
+
+    .banner-info p { font-size: 0.82rem; color: var(--muted); }
+
+    .banner-stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .banner-stat {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .banner-stat strong {
+      display: block;
+      color: var(--body);
+      font-size: 1.15rem;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    /* ── Group cards ────────────────────────────────────────────────────── */
+    .groups-section-title {
+      font-family: 'Russo One', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+
+    .groups-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(262px, 1fr));
+      gap: 14px;
+    }
+
+    .group-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .group-card:hover { border-color: rgba(148,196,235,0.2); }
+
+    .group-card-head {
+      padding: 13px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,15,24,0.35);
+    }
+
+    .group-name {
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--body);
+    }
+
+    .group-pill {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+      white-space: nowrap;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .group-pill.all-signed { background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+    .group-pill.follow-up  { background: rgba(251,191,36,0.1); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+    .group-pill.waiting    { background: rgba(148,196,235,0.05); color: var(--muted); border: 1px solid rgba(148,196,235,0.1); }
+
+    .group-card-body { padding: 12px 16px; }
+
+    .group-expected-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .expected-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .expected-input {
+      width: 60px;
+      padding: 5px 8px;
+      border: 1.5px solid rgba(148,196,235,0.55);
+      border-radius: 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--body);
+      background: rgba(148,196,235,0.13);
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .expected-input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(52,211,153,0.12);
+    }
+
+    .expected-input::placeholder { color: var(--muted); }
+
+    .btn-save-exp {
+      font-size: 0.67rem;
+      padding: 4px 9px;
+      background: rgba(52,211,153,0.08);
+      border: 1px solid rgba(52,211,153,0.2);
+      border-radius: 5px;
+      color: var(--green);
+      cursor: pointer;
+      font-weight: 600;
+      font-family: 'Rubik', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.15s;
+    }
+
+    .btn-save-exp:hover { background: rgba(52,211,153,0.16); border-color: rgba(52,211,153,0.35); }
+
+    .guest-list { list-style: none; }
+
+    .guest-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(148,196,235,0.05);
+      cursor: pointer;
+    }
+
+    .guest-row:hover .guest-name { color: var(--mint); }
+
+    .guest-left { display: flex; align-items: center; gap: 8px; }
+
+    .guest-name {
+      font-size: 0.87rem;
+      font-weight: 500;
+      color: var(--body);
+      transition: color 0.15s;
+    }
+
+    .children-tag {
+      font-size: 0.63rem;
+      font-weight: 600;
+      background: rgba(251,191,36,0.1);
+      color: var(--amber);
+      border: 1px solid rgba(251,191,36,0.2);
+      padding: 2px 6px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .guest-time {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .noshow-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 0.8rem;
+      color: var(--amber);
+    }
+
+    .btn-del-ns {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.72rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .btn-del-ns:hover { color: #F87171; background: rgba(248,113,113,0.1); }
+
+    .group-footer {
+      padding: 9px 16px;
+      background: rgba(8,15,24,0.35);
+      font-size: 0.7rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Camp actions ───────────────────────────────────────────────────── */
+    .camp-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    /* ── Modal ──────────────────────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(6,11,18,0.82);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      display: none;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: #152030;
+      border: 1px solid rgba(148,196,235,0.12);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 28px 64px rgba(0,0,0,0.65);
+    }
+
+    .modal-title {
+      font-family: 'Russo One', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: var(--body);
+      margin-bottom: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 30px;
+      height: 30px;
+      background: rgba(148,196,235,0.07);
+      border: 1px solid rgba(148,196,235,0.12);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .modal-close:hover { background: rgba(148,196,235,0.14); color: var(--body); }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 22px;
+      margin-bottom: 18px;
+    }
+
+    .detail-item label {
+      display: block;
+      font-size: 0.66rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    .detail-item p { font-size: 0.9rem; color: var(--body); font-weight: 500; }
+
+    .sig-preview {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 10px;
+      margin-top: 12px;
+    }
+
+    .sig-preview img { max-width: 100%; display: block; }
+
+    /* ── Flash ──────────────────────────────────────────────────────────── */
+    .flash {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(21,32,48,0.97);
+      border: 1px solid rgba(52,211,153,0.28);
+      color: var(--green);
+      padding: 11px 22px;
+      border-radius: 30px;
+      font-size: 0.84rem;
+      font-weight: 500;
+      z-index: 999;
+      transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 16px rgba(52,211,153,0.1);
+    }
+
+    .flash.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Archive ────────────────────────────────────────────────────────── */
+    .summary-bar {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      padding: 18px 22px;
+      background: rgba(8,15,24,0.75);
+      border: 1px solid rgba(148,196,235,0.1);
+      border-radius: var(--radius-lg);
+      margin-bottom: 20px;
+    }
+
+    .summary-stat label {
+      display: block;
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 3px;
+    }
+
+    .summary-stat p {
+      font-family: 'DM Mono', monospace;
+      font-size: 1.25rem;
+      color: var(--body);
+      font-weight: 500;
+    }
+
+    .collapsible {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .collapsible:hover { border-color: rgba(148,196,235,0.18); }
+
+    .collapsible-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      cursor: pointer;
+      background: var(--card);
+      user-select: none;
+    }
+
+    .collapsible-head:hover { background: rgba(148,196,235,0.04); }
+
+    .collapsible-head h3 {
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--body);
+    }
+
+    .collapsible-arrow { color: var(--muted); font-size: 0.75rem; transition: transform 0.2s; }
+    .collapsible.open .collapsible-arrow { transform: rotate(180deg); }
+    .collapsible-body { display: none; border-top: 1px solid var(--border); }
+    .collapsible.open .collapsible-body { display: block; }
+
+    .archive-guest-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 18px;
+      border-bottom: 1px solid rgba(148,196,235,0.05);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .archive-guest-row:hover { background: rgba(148,196,235,0.04); }
+    .archive-guest-row:last-child { border-bottom: none; }
+
+    /* ── Plan a Day ─────────────────────────────────────────────────────── */
+    .plan-activity-section { margin-bottom: 28px; }
+
+    .plan-activity-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .plan-activity-icon { font-size: 1.3rem; }
+
+    .plan-activity-heading h3 {
+      font-family: 'Russo One', sans-serif;
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--body);
+      letter-spacing: 0.04em;
+    }
+
+    .plan-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+
+    .plan-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px;
+      transition: border-color 0.2s;
+    }
+
+    .plan-card:focus-within { border-color: rgba(52,211,153,0.35); }
+
+    .plan-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .plan-card h3 {
+      font-family: 'Rubik', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--body);
+    }
+
+    .plan-bus-badge {
+      font-size: 0.63rem;
+      font-weight: 600;
+      background: rgba(56,189,248,0.1);
+      color: var(--mint);
+      border: 1px solid rgba(56,189,248,0.2);
+      padding: 3px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .plan-input-wrap { position: relative; }
+
+    .plan-input-label {
+      display: block;
+      font-size: 0.66rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .plan-card input[type="number"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid rgba(148,196,235,0.55);
+      border-radius: var(--radius);
+      font-family: 'DM Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--body);
+      outline: none;
+      text-align: center;
+      background: rgba(148,196,235,0.13);
+      -moz-appearance: textfield;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .plan-card input[type="number"]::placeholder { color: var(--muted); }
+
+    .plan-card input[type="number"]::-webkit-outer-spin-button,
+    .plan-card input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .plan-card input[type="number"]:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(52,211,153,0.1);
+    }
+
+    .plan-save-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .plan-save-note { font-size: 0.8rem; color: var(--muted); }
+
+    /* ── Waiver Manager ─────────────────────────────────────────────────── */
+    .waiver-version-list { list-style: none; }
+
+    .waiver-version-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .waiver-version-row:last-child { border-bottom: none; }
+
+    .version-active-badge {
+      background: rgba(52,211,153,0.1);
+      color: var(--green);
+      border: 1px solid rgba(52,211,153,0.2);
+      font-size: 0.64rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(148,196,235,0.18);
+      border-radius: var(--radius);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      color: var(--body);
+      resize: vertical;
+      outline: none;
+      background: rgba(8,15,24,0.75);
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: var(--mint); }
+
+    /* ── Loading ────────────────────────────────────────────────────────── */
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid rgba(148,196,235,0.1);
+      border-top-color: var(--mint);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-row { text-align: center; padding: 32px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════ LOGIN ════════════════════════════════════ -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+          <polygon points="18,2 34,11 34,25 18,34 2,25 2,11" fill="#34D399"/>
+          <polygon points="18,8 28,14 28,22 18,28 8,22 8,14" fill="none" stroke="#38BDF8" stroke-width="1"/>
+        </svg>
+        <div class="login-logo-text">ACTIVE<span>NORTH</span></div>
+      </div>
+      <h2>Staff login</h2>
+      <p>Enter your credentials to access the dashboard</p>
+
+      <div class="form-group">
+        <label for="l-user">Username</label>
+        <input type="text" id="l-user" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="l-pass">Password</label>
+        <input type="password" id="l-pass" autocomplete="current-password" />
+      </div>
+      <div class="login-error" id="login-error"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="doLogin()">Sign in</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ APP SHELL ════════════════════════════════ -->
+  <div id="app-shell">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+          <polygon points="18,2 34,11 34,25 18,34 2,25 2,11" fill="#34D399"/>
+        </svg>
+        <div class="topbar-logo">ACTIVE<span>NORTH</span></div>
+      </div>
+      <div class="topbar-right">
+        <div class="role-badge" id="role-badge">—</div>
+        <button class="btn-logout" onclick="doLogout()">Log out</button>
+      </div>
+    </header>
+
+    <!-- Tab nav -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="camp" onclick="switchTab('camp')">⛺ Camp View</button>
+      <button class="tab-btn hidden" data-tab="plan" onclick="switchTab('plan')">📅 Plan a Day</button>
+      <button class="tab-btn hidden" data-tab="archive" onclick="switchTab('archive')">📁 Archive</button>
+      <button class="tab-btn hidden" data-tab="waiver" onclick="switchTab('waiver')">📄 Waiver Manager</button>
+    </nav>
+
+    <!-- ── TAB: Camp View ─────────────────────────────────────────────── -->
+    <div class="tab-pane active" id="pane-camp">
+      <div class="pane-inner">
+        <div class="date-header">
+          <h2>Camp View</h2>
+          <div class="date-input-wrap">
+            <input type="date" id="camp-date" onchange="loadCampView()" />
+            <span class="refresh-info" id="refresh-countdown">Auto-refresh in 12s</span>
+          </div>
+        </div>
+
+        <div class="camp-actions">
+          <button class="btn btn-secondary" onclick="openNoShowModal()">+ Mark No-Shows</button>
+          <button class="btn btn-secondary" onclick="downloadGuestList()" title="Download a printable guest list for offline use">⬇ Download guest list</button>
+        </div>
+
+        <div class="bus-banners" id="bus-banners">
+          <div class="bus-banner grey">
+            <div class="banner-dot"></div>
+            <div class="banner-info"><h3>Bus 1</h3><p>Loading…</p></div>
+          </div>
+          <div class="bus-banner grey">
+            <div class="banner-dot"></div>
+            <div class="banner-info"><h3>Bus 2</h3><p>Loading…</p></div>
+          </div>
+        </div>
+
+        <div id="camp-groups-wrap">
+          <div class="loading-row"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: Plan a Day ────────────────────────────────────────────── -->
+    <div class="tab-pane" id="pane-plan">
+      <div class="pane-inner">
+        <div class="date-header">
+          <h2>Plan a Day</h2>
+          <div class="date-input-wrap">
+            <input type="date" id="plan-date" onchange="loadPlanDay()" />
+          </div>
+        </div>
+
+        <div id="plan-groups-wrap">
+          <div class="loading-row"><div class="spinner"></div></div>
+        </div>
+
+        <div class="plan-save-row">
+          <span class="plan-save-note">Empty fields are saved as 0 guests.</span>
+          <button class="btn btn-primary" id="btn-save-plan" onclick="savePlan()">💾 Save plan for this day</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: Archive ───────────────────────────────────────────────── -->
+    <div class="tab-pane" id="pane-archive">
+      <div class="pane-inner">
+        <div class="date-header">
+          <h2>Archive</h2>
+          <div class="date-input-wrap">
+            <input type="date" id="archive-date" onchange="loadArchive()" />
+            <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+          </div>
+        </div>
+
+        <div id="archive-summary-bar" style="display:none;" class="summary-bar"></div>
+
+        <div id="archive-filter-row" style="display:none;margin-bottom:16px;display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+          <label style="font-size:0.82rem;font-weight:600;color:var(--teal);">Filter group:</label>
+          <select id="archive-group-filter" onchange="applyArchiveFilter()" style="padding:7px 12px;border:1px solid rgba(148,196,235,0.18);border-radius:var(--radius);font-family:'Rubik',sans-serif;font-size:0.85rem;background:rgba(8,15,24,0.8);color:var(--body);outline:none;color-scheme:dark;">
+            <option value="">All groups</option>
+          </select>
+        </div>
+
+        <div id="archive-wrap">
+          <p style="color:var(--muted);font-size:0.9rem;">Select a date to view records.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: Waiver Manager ────────────────────────────────────────── -->
+    <div class="tab-pane" id="pane-waiver">
+      <div class="pane-inner">
+        <h2 style="font-family:'Russo One',sans-serif;font-size:1.2rem;font-weight:400;color:var(--body);margin-bottom:20px;letter-spacing:0.04em;">Waiver Manager</h2>
+
+        <div class="card">
+          <div class="card-title">Current active waiver</div>
+          <div id="waiver-active-info"><div class="spinner"></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Version history</div>
+          <ul class="waiver-version-list" id="waiver-history"></ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Upload new version</div>
+          <div class="form-group">
+            <label for="w-version">Version number (e.g. "1.2")</label>
+            <input type="text" id="w-version" placeholder="1.0" style="max-width:160px;" />
+          </div>
+          <div class="form-group">
+            <label for="w-content">Waiver HTML content</label>
+            <textarea id="w-content" rows="10" placeholder="Paste full HTML content of the waiver here…"></textarea>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="previewWaiver()">Preview</button>
+            <button class="btn btn-primary" onclick="uploadWaiver()">Upload and Activate</button>
+          </div>
+          <div id="waiver-upload-err" style="color:#F87171;font-size:0.82rem;margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /app-shell -->
+
+  <!-- ═══════════════════════════ MODALS ═══════════════════════════════════ -->
+
+  <!-- Guest detail modal -->
+  <div class="modal-backdrop" id="modal-guest">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('modal-guest')">✕</button>
+      <div class="modal-title">Guest record</div>
+      <div id="modal-guest-content"></div>
+    </div>
+  </div>
+
+  <!-- No-show modal -->
+  <div class="modal-backdrop" id="modal-noshow">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('modal-noshow')">✕</button>
+      <div class="modal-title">Mark No-Shows</div>
+      <div class="form-group">
+        <label for="ns-group">Group</label>
+        <select id="ns-group"></select>
+      </div>
+      <div class="form-group">
+        <label for="ns-count">Number of no-shows</label>
+        <input type="number" id="ns-count" min="1" value="1" />
+      </div>
+      <div class="form-group">
+        <label for="ns-names">Names (if known)</label>
+        <input type="text" id="ns-names" placeholder="e.g. Hansen, Smith" />
+      </div>
+      <button class="btn btn-primary" onclick="saveNoShow()">Save</button>
+      <div id="ns-err" style="color:#F87171;font-size:0.82rem;margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- Waiver preview modal -->
+  <div class="modal-backdrop" id="modal-waiver-preview">
+    <div class="modal" style="max-width:700px;">
+      <button class="modal-close" onclick="closeModal('modal-waiver-preview')">✕</button>
+      <div class="modal-title">Waiver preview</div>
+      <div id="waiver-preview-content" style="max-height:60vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);padding:16px;background:var(--bg);font-size:0.88rem;line-height:1.6;"></div>
+    </div>
+  </div>
+
+  <!-- Flash -->
+  <div class="flash" id="flash-msg"></div>
+
+  <script>
+    // ── Init Supabase ───────────────────────────────────────────────────────
+    const { createClient } = supabase;
+
+    function makeMockDb() {
+      const empty = { data: [], error: null };
+      const chain = {
+        select: () => chain, eq: () => chain, in: () => chain,
+        order: () => chain, limit: () => chain, single: async () => ({ data: null, error: null }),
+        neq: () => chain, insert: async () => empty, update: () => chain,
+        then: (fn) => Promise.resolve(fn(empty))
+      };
+      return { from: () => chain };
+    }
+
+    let db;
+    try {
+      db = createClient(SUPABASE_URL, SUPABASE_ANON);
+    } catch (e) {
+      db = makeMockDb();
+    }
+    if (SUPABASE_URL === 'YOUR_SUPABASE_URL') db = makeMockDb();
+
+    // ── Session ─────────────────────────────────────────────────────────────
+    let session = null;
+
+    function doLogin() {
+      const user = document.getElementById('l-user').value.trim().toLowerCase();
+      const pass = document.getElementById('l-pass').value;
+      const err  = document.getElementById('login-error');
+
+      if (!USERS[user] || USERS[user].password !== pass) {
+        err.textContent = 'Invalid username or password';
+        return;
+      }
+
+      session = { username: user, role: USERS[user].role };
+      sessionStorage.setItem('an_session', JSON.stringify(session));
+      initApp();
+    }
+
+    document.getElementById('l-pass').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    function doLogout() {
+      sessionStorage.removeItem('an_session');
+      session = null;
+      document.getElementById('app-shell').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+
+    function initApp() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-shell').style.display = 'block';
+      document.getElementById('role-badge').textContent = session.role;
+
+      // Show admin-only tabs
+      if (session.role === 'admin') {
+        document.querySelectorAll('.tab-btn.hidden').forEach(t => t.classList.remove('hidden'));
+      }
+
+      // Set default dates
+      const today    = todayStr();
+      const tomorrow = offsetDate(today, 1);
+      document.getElementById('camp-date').value    = today;
+      document.getElementById('plan-date').value    = tomorrow;
+      document.getElementById('archive-date').value = today;
+
+      loadCampView();
+      startAutoRefresh();
+      if (session.role === 'admin') loadWaiverManager();
+    }
+
+    // Check for existing session on load
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = sessionStorage.getItem('an_session');
+      if (saved) {
+        session = JSON.parse(saved);
+        initApp();
+      }
+    });
+
+    // ── Utilities ───────────────────────────────────────────────────────────
+    function todayStr() {
+      const d = new Date();
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    }
+
+    function offsetDate(dateStr, days) {
+      const [y, m, day] = dateStr.split('-').map(Number);
+      const d = new Date(y, m - 1, day + days);
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    }
+
+    const NO_TZ = { timeZone: 'Europe/Oslo' };
+
+    function fmtDate(str) {
+      return new Date(str).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', ...NO_TZ });
+    }
+
+    function fmtDateTime(str) {
+      return new Date(str).toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', ...NO_TZ
+      });
+    }
+
+    function flash(msg) {
+      const el = document.getElementById('flash-msg');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    function openModal(id)  { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    document.querySelectorAll('.modal-backdrop').forEach(m => {
+      m.addEventListener('click', e => {
+        if (e.target === m) m.classList.remove('open');
+      });
+    });
+
+    // ── Tab switching ───────────────────────────────────────────────────────
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + name));
+
+      if (name === 'plan')    { loadPlanDay(); }
+      if (name === 'archive') { loadArchive(); }
+      if (name === 'waiver')  { loadWaiverManager(); }
+    }
+
+    // ── Standard groups ─────────────────────────────────────────────────────
+    const STD_GROUPS = [
+      { name: 'Dogsledding Day 1',       bus_number: 1, group_type: 'dog',  sort_order: 1 },
+      { name: 'Dogsledding Day 2',       bus_number: 1, group_type: 'dog',  sort_order: 2 },
+      { name: 'Snowmobile Day 1',        bus_number: 1, group_type: 'snow', sort_order: 3 },
+      { name: 'Snowmobile Day 2',        bus_number: 1, group_type: 'snow', sort_order: 4 },
+      { name: 'Dogsledding Afternoon 1', bus_number: 2, group_type: 'dog',  sort_order: 5 },
+      { name: 'Dogsledding Afternoon 2', bus_number: 2, group_type: 'dog',  sort_order: 6 },
+      { name: 'Snowmobile Afternoon 1',  bus_number: 2, group_type: 'snow', sort_order: 7 },
+      { name: 'Snowmobile Afternoon 2',  bus_number: 2, group_type: 'snow', sort_order: 8 },
+    ];
+
+    async function ensureStdGroups(date) {
+      const { data: existing } = await db
+        .from('tour_groups')
+        .select('sort_order')
+        .eq('date', date);
+
+      const existingOrders = new Set((existing || []).map(g => g.sort_order));
+      const toCreate = STD_GROUPS.filter(g => !existingOrders.has(g.sort_order));
+
+      if (toCreate.length > 0) {
+        await db.from('tour_groups').insert(toCreate.map(g => ({ ...g, date })));
+      }
+    }
+
+    // ── Camp View ────────────────────────────────────────────────────────────
+    let refreshTimer = null;
+    let refreshCountdown = 12;
+
+    function startAutoRefresh() {
+      clearInterval(refreshTimer);
+      refreshCountdown = 12;
+      refreshTimer = setInterval(() => {
+        // Pause if user is actively typing in any input
+        const active = document.activeElement;
+        const isEditing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
+        if (isEditing) {
+          const el = document.getElementById('refresh-countdown');
+          if (el) el.textContent = 'Auto-refresh paused (editing…)';
+          return;
+        }
+        refreshCountdown--;
+        const el = document.getElementById('refresh-countdown');
+        if (el) el.textContent = 'Auto-refresh in ' + refreshCountdown + 's';
+        if (refreshCountdown <= 0) {
+          refreshCountdown = 12;
+          loadCampView();
+        }
+      }, 1000);
+    }
+
+    let currentGroups = [];
+
+    async function loadCampView() {
+      refreshCountdown = 12;
+      const date = document.getElementById('camp-date').value;
+      if (!date) return;
+
+      try {
+        await ensureStdGroups(date);
+
+        const { data: groups } = await db
+          .from('tour_groups').select('*').eq('date', date).order('sort_order');
+
+        const groupIds = (groups || []).map(g => g.id);
+        let allSigs = [], allNS = [];
+
+        if (groupIds.length > 0) {
+          const [{ data: s }, { data: n }] = await Promise.all([
+            db.from('signatures').select('*').in('tour_group_id', groupIds),
+            db.from('no_shows').select('*').in('tour_group_id', groupIds)
+          ]);
+          allSigs = s || [];
+          allNS   = n || [];
+        }
+
+        currentGroups = groups || [];
+        renderCampView(currentGroups, allSigs, allNS);
+      } catch (e) {
+        document.getElementById('camp-groups-wrap').innerHTML =
+          '<p style="color:#F87171;padding:20px;">Error loading data. Please check your connection.</p>';
+      }
+    }
+
+    function renderCampView(groups, sigs, noshows) {
+      const bus1Groups = groups.filter(g => g.bus_number === 1);
+      const bus2Groups = groups.filter(g => g.bus_number === 2);
+
+      // Compute banner stats
+      function busStats(busGroups) {
+        let expected = 0, signed = 0, noshow = 0;
+        let hasExpected = false;
+        for (const g of busGroups) {
+          const gSigs = sigs.filter(s => s.tour_group_id === g.id);
+          const gNS   = noshows.filter(n => n.tour_group_id === g.id);
+          signed  += gSigs.reduce((a, s) => a + 1 + ((s.children || []).length), 0);
+          noshow  += gNS.reduce((a, n) => a + (n.count || 0), 0);
+          if (g.expected_guests != null) { expected += g.expected_guests; hasExpected = true; }
+        }
+        return { expected, signed, noshow, hasExpected, missing: expected - signed - noshow };
+      }
+
+      function bannerHTML(label, stats) {
+        let cls, msg;
+        if (!stats.hasExpected) {
+          cls = 'grey'; msg = 'No count set';
+        } else if (stats.missing <= 0) {
+          cls = 'green'; msg = '✓ All signed';
+        } else {
+          cls = 'orange'; msg = stats.missing + ' not yet signed — follow up when bus arrives';
+        }
+        return `<div class="bus-banner ${cls}">
+          <div class="banner-dot"></div>
+          <div class="banner-info">
+            <h3>${label}</h3>
+            <p>${msg}</p>
+            <div class="banner-stats">
+              <div class="banner-stat"><strong>${stats.expected || '–'}</strong><br>Expected</div>
+              <div class="banner-stat"><strong>${stats.signed}</strong><br>Signed</div>
+              <div class="banner-stat"><strong>${stats.noshow}</strong><br>No-shows</div>
+              <div class="banner-stat"><strong>${Math.max(0, stats.missing)}</strong><br>To follow up</div>
+            </div>
+          </div>
+        </div>`;
+      }
+
+      document.getElementById('bus-banners').innerHTML =
+        bannerHTML('🌅 Day departures', busStats(bus1Groups)) +
+        bannerHTML('🌤️ Afternoon departures', busStats(bus2Groups));
+
+      // Render groups
+      let html = '';
+      for (const busNum of [1, 2]) {
+        const busGs = groups.filter(g => g.bus_number === busNum);
+        if (!busGs.length) continue;
+        const label = busNum === 1 ? '🌅 Day departures' : '🌤️ Afternoon departures';
+        html += `<div class="groups-section-title">${label}</div><div class="groups-grid">`;
+        for (const g of busGs) {
+          html += renderGroupCard(g, sigs, noshows);
+        }
+        html += '</div>';
+      }
+
+      document.getElementById('camp-groups-wrap').innerHTML = html;
+      populateNoShowGroupSelect(groups);
+    }
+
+    function renderGroupCard(group, sigs, noshows) {
+      const gSigs = sigs.filter(s => s.tour_group_id === group.id);
+      const gNS   = noshows.filter(n => n.tour_group_id === group.id);
+      const signedPeople = gSigs.reduce((a, s) => a + 1 + ((s.children || []).length), 0);
+      const nsPeople     = gNS.reduce((a, n) => a + (n.count || 0), 0);
+      const expected     = group.expected_guests;
+      const missing      = expected != null ? expected - signedPeople - nsPeople : null;
+
+      let pillCls, pillTxt;
+      if (expected == null) {
+        pillCls = 'waiting'; pillTxt = 'Waiting for arrivals';
+      } else if (missing <= 0) {
+        pillCls = 'all-signed'; pillTxt = '✓ All signed';
+      } else {
+        pillCls = 'follow-up'; pillTxt = missing + ' to follow up';
+      }
+
+      const guestRows = gSigs.map(s => {
+        const children = s.children || [];
+        const childTag = children.length ? `<span class="children-tag">+${children.length} child${children.length > 1 ? 'ren' : ''}</span>` : '';
+        const t = fmtDateTime(s.signed_at || s.created_at);
+        return `<li class="guest-row" onclick="openGuestModal(${JSON.stringify(JSON.stringify(s))})">
+          <div class="guest-left">
+            <span class="guest-name">${escHtml(s.guest_name)}</span>${childTag}
+          </div>
+          <span class="guest-time">${t.split(', ')[1] || ''}</span>
+        </li>`;
+      }).join('');
+
+      const nsRows = gNS.map(n => `<div class="noshow-row">
+        <span>⚠ ${n.count} no-show${n.count > 1 ? 's' : ''}${n.names ? ' — ' + escHtml(n.names) : ''}</span>
+        ${session?.role === 'admin' ? `<button class="btn-del-ns" onclick="deleteNoShow('${n.id}')" title="Remove no-show">✕</button>` : ''}
+      </div>`).join('');
+
+      const footer = `${gSigs.length} sig${gSigs.length !== 1 ? 's' : ''} · ${signedPeople} people · ${nsPeople} no-show · ` +
+        (missing != null ? (missing <= 0 ? 'all accounted for' : missing + ' to follow up') : 'no count set');
+
+      const actIcon = group.group_type === 'dog' ? '🐕' : '🏔️';
+
+      return `<div class="group-card">
+        <div class="group-card-head">
+          <div class="group-name">${actIcon} ${escHtml(group.name)}</div>
+          <div class="group-pill ${pillCls}">${pillTxt}</div>
+        </div>
+        <div class="group-card-body">
+          <div class="group-expected-row">
+            <span class="expected-label">Expected:</span>
+            <input class="expected-input" type="number" min="0" value="${expected ?? ''}"
+              id="exp-${group.id}" placeholder="–" />
+            <button class="btn-save-exp" onclick="saveExpected('${group.id}')">Save</button>
+          </div>
+          <ul class="guest-list">${guestRows}</ul>
+          ${nsRows}
+        </div>
+        <div class="group-footer">${footer}</div>
+      </div>`;
+    }
+
+    async function saveExpected(groupId) {
+      const input = document.getElementById('exp-' + groupId);
+      const val   = parseInt(input.value);
+      if (isNaN(val) || val < 0) return;
+      await db.from('tour_groups').update({ expected_guests: val }).eq('id', groupId);
+      flash('Expected count saved');
+      loadCampView();
+    }
+
+    // ── Download guest list ──────────────────────────────────────────────────
+    function downloadGuestList() {
+      if (!currentGroups.length) { flash('No data loaded yet'); return; }
+      const date = document.getElementById('camp-date').value;
+
+      let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>Guest list — ${date}</title>
+        <style>
+          body { font-family: Arial, sans-serif; font-size: 12px; padding: 20px; color: #1a1a1a; }
+          h1 { font-size: 16px; margin-bottom: 4px; }
+          h2 { font-size: 13px; margin: 16px 0 6px; color: #04342C; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+          th { background: #E1F5EE; text-align: left; padding: 5px 8px; font-size: 11px; }
+          td { padding: 4px 8px; border-bottom: 1px solid #eee; }
+          .meta { color: #666; font-size: 11px; margin-bottom: 16px; }
+          .noshow { color: #BA7517; font-style: italic; }
+        </style></head><body>
+        <h1>Activenorth — Guest List</h1>
+        <p class="meta">Date: ${date} &nbsp;|&nbsp; Downloaded: ${new Date().toLocaleString('en-GB', { timeZone: 'Europe/Oslo' })}</p>`;
+
+      for (const g of currentGroups) {
+        html += `<h2>${g.group_type === 'dog' ? '🐕' : '🏔️'} ${g.name}</h2>
+          <table><tr><th>#</th><th>Name</th><th>Nationality</th><th>Signed at</th><th>Children</th></tr>`;
+
+        // Pull from rendered DOM — look for guest rows in current view
+        const card = [...document.querySelectorAll('.group-card')].find(c =>
+          c.querySelector('.group-name')?.textContent.includes(g.name));
+
+        if (card) {
+          const rows = card.querySelectorAll('.guest-row');
+          rows.forEach((row, i) => {
+            const name = row.querySelector('.guest-name')?.textContent || '';
+            const time = row.querySelector('.guest-time')?.textContent || '';
+            const childTag = row.querySelector('.children-tag')?.textContent || '';
+            html += `<tr><td>${i + 1}</td><td>${name}</td><td>—</td><td>${time}</td><td>${childTag}</td></tr>`;
+          });
+          const nsRows = card.querySelectorAll('.noshow-row');
+          nsRows.forEach(r => {
+            html += `<tr><td></td><td class="noshow" colspan="4">${r.querySelector('span')?.textContent || r.textContent.trim()}</td></tr>`;
+          });
+        }
+        html += `</table>`;
+      }
+
+      html += `</body></html>`;
+      const blob = new Blob([html], { type: 'text/html' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `activenorth-guestlist-${date}.html`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    // ── No-show modal ────────────────────────────────────────────────────────
+    function populateNoShowGroupSelect(groups) {
+      const sel = document.getElementById('ns-group');
+      sel.innerHTML = groups.map(g =>
+        `<option value="${g.id}">${escHtml(g.name)}</option>`
+      ).join('');
+    }
+
+    function openNoShowModal() {
+      populateNoShowGroupSelect(currentGroups);
+      openModal('modal-noshow');
+    }
+
+    async function deleteNoShow(id) {
+      if (!confirm('Remove this no-show record?')) return;
+      await db.from('no_shows').delete().eq('id', id);
+      flash('No-show removed');
+      loadCampView();
+    }
+
+    async function saveNoShow() {
+      const groupId = document.getElementById('ns-group').value;
+      const count   = parseInt(document.getElementById('ns-count').value);
+      const names   = document.getElementById('ns-names').value.trim();
+      const err     = document.getElementById('ns-err');
+
+      if (!groupId) { err.textContent = 'Select a group'; return; }
+      if (!count || count < 1) { err.textContent = 'Enter a valid count'; return; }
+      err.textContent = '';
+
+      const date = document.getElementById('camp-date').value;
+      const { error } = await db.from('no_shows').insert({
+        tour_group_id: groupId,
+        count,
+        names: names || null,
+        recorded_date: date
+      });
+
+      if (error) { err.textContent = 'Error saving. Try again.'; return; }
+
+      closeModal('modal-noshow');
+      document.getElementById('ns-count').value = 1;
+      document.getElementById('ns-names').value = '';
+      flash('No-shows recorded');
+      loadCampView();
+    }
+
+    // ── Guest detail modal ────────────────────────────────────────────────────
+    function openGuestModal(sigJson) {
+      const s = JSON.parse(sigJson);
+      const children = s.children || [];
+      const childrenHtml = children.length
+        ? `<div class="detail-item" style="grid-column:1/-1;"><label>Children</label><p>${children.map(c => `${escHtml(c.name)} (age ${c.age})`).join(', ')}</p></div>`
+        : '';
+
+      document.getElementById('modal-guest-content').innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-item"><label>First name</label><p>${escHtml(s.first_name)}</p></div>
+          <div class="detail-item"><label>Last name</label><p>${escHtml(s.last_name)}</p></div>
+          <div class="detail-item"><label>Date of birth</label><p>${s.date_of_birth ? fmtDate(s.date_of_birth) : '–'}</p></div>
+          <div class="detail-item"><label>Nationality</label><p>${escHtml(s.nationality)}</p></div>
+          <div class="detail-item"><label>Email</label><p>${escHtml(s.email)}</p></div>
+          <div class="detail-item"><label>Phone</label><p>${escHtml(s.phone)}</p></div>
+          <div class="detail-item"><label>Signed at</label><p style="font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--body);">${fmtDateTime(s.signed_at || s.created_at)}</p></div>
+          <div class="detail-item"><label>Waiver version</label><p>v${escHtml(s.waiver_version)}</p></div>
+          ${childrenHtml}
+        </div>
+        ${s.signature_data ? `<p style="font-size:0.66rem;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;">Signature</p><div class="sig-preview"><img src="${s.signature_data}" alt="Signature" /></div>` : ''}
+      `;
+      openModal('modal-guest');
+    }
+
+    // ── Plan a Day ────────────────────────────────────────────────────────────
+    async function loadPlanDay() {
+      const date = document.getElementById('plan-date').value;
+      if (!date) return;
+
+      document.getElementById('plan-groups-wrap').innerHTML = '<div class="loading-row"><div class="spinner"></div></div>';
+
+      await ensureStdGroups(date);
+
+      const { data: groups } = await db
+        .from('tour_groups')
+        .select('*')
+        .eq('date', date)
+        .order('sort_order');
+
+      if (!groups) return;
+
+      // Group by activity type
+      const dogGroups  = groups.filter(g => g.group_type === 'dog');
+      const snowGroups = groups.filter(g => g.group_type === 'snow');
+
+      function planCardHTML(g) {
+        const val = g.expected_guests != null ? g.expected_guests : '';
+        return `<div class="plan-card">
+          <div class="plan-card-top">
+            <h3>${escHtml(g.name)}</h3>
+            <span class="plan-bus-badge">${g.bus_number === 1 ? '🌅 Day' : '🌤️ Afternoon'}</span>
+          </div>
+          <div class="plan-input-wrap">
+            <label class="plan-input-label" for="plan-exp-${g.id}">Expected guests</label>
+            <input type="number" min="0" placeholder="0"
+              id="plan-exp-${g.id}" value="${val}" />
+          </div>
+        </div>`;
+      }
+
+      let html = `
+        <div class="plan-activity-section">
+          <div class="plan-activity-heading">
+            <span class="plan-activity-icon">🐕</span>
+            <h3>Dog Sledding</h3>
+          </div>
+          <div class="plan-grid">${dogGroups.map(planCardHTML).join('')}</div>
+        </div>
+        <div class="plan-activity-section">
+          <div class="plan-activity-heading">
+            <span class="plan-activity-icon">🏔️</span>
+            <h3>Snowmobile</h3>
+          </div>
+          <div class="plan-grid">${snowGroups.map(planCardHTML).join('')}</div>
+        </div>
+      `;
+      document.getElementById('plan-groups-wrap').innerHTML = html;
+      document.getElementById('btn-save-plan').dataset.date = date;
+      document.getElementById('btn-save-plan').dataset.groups = JSON.stringify(groups.map(g => g.id));
+    }
+
+    async function savePlan() {
+      const btn = document.getElementById('btn-save-plan');
+      const groupIds = JSON.parse(btn.dataset.groups || '[]');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      const updates = groupIds.map(id => {
+        const input = document.getElementById('plan-exp-' + id);
+        const val   = input?.value.trim();
+        // Empty field = 0
+        const count = val === '' ? 0 : parseInt(val);
+        return db.from('tour_groups').update({ expected_guests: count }).eq('id', id);
+      });
+
+      await Promise.all(updates);
+      btn.disabled = false;
+      btn.innerHTML = '💾 Save plan for this day';
+      flash('Plan saved ✓ — Camp View will now show expected counts');
+    }
+
+    // ── Archive ───────────────────────────────────────────────────────────────
+    let archiveData = { groups: [], sigs: [], noshows: [] };
+
+    async function loadArchive() {
+      const date = document.getElementById('archive-date').value;
+      if (!date) return;
+
+      document.getElementById('archive-wrap').innerHTML = '<div class="loading-row"><div class="spinner"></div></div>';
+      document.getElementById('archive-summary-bar').style.display = 'none';
+      document.getElementById('archive-filter-row').style.display = 'none';
+
+      const { data: groups } = await db.from('tour_groups').select('*').eq('date', date).order('sort_order');
+      if (!groups || !groups.length) {
+        document.getElementById('archive-wrap').innerHTML = '<p style="color:var(--muted);">No groups found for this date.</p>';
+        return;
+      }
+
+      const groupIds = groups.map(g => g.id);
+      const [{ data: sigs }, { data: noshows }] = await Promise.all([
+        db.from('signatures').select('*').in('tour_group_id', groupIds),
+        db.from('no_shows').select('*').in('tour_group_id', groupIds)
+      ]);
+
+      archiveData = { groups, sigs: sigs || [], noshows: noshows || [] };
+
+      // Populate group filter
+      const filterSel = document.getElementById('archive-group-filter');
+      filterSel.innerHTML = '<option value="">All groups</option>' +
+        groups.map(g => `<option value="${g.id}">${escHtml(g.name)}</option>`).join('');
+      document.getElementById('archive-filter-row').style.display = 'flex';
+
+      renderArchive(groups, sigs || [], noshows || []);
+    }
+
+    function applyArchiveFilter() {
+      const sel = document.getElementById('archive-group-filter').value;
+      const { groups, sigs, noshows } = archiveData;
+      const filteredGroups = sel ? groups.filter(g => g.id === sel) : groups;
+      renderArchive(filteredGroups, sigs, noshows);
+    }
+
+    function renderArchive(groups, sigs, noshows) {
+      const totalExpected = groups.reduce((a, g) => a + (g.expected_guests || 0), 0);
+      const totalSigned   = sigs.filter(s => groups.find(g => g.id === s.tour_group_id))
+                               .reduce((a, s) => a + 1 + ((s.children || []).length), 0);
+      const totalNS       = noshows.filter(n => groups.find(g => g.id === n.tour_group_id))
+                               .reduce((a, n) => a + (n.count || 0), 0);
+      const date          = document.getElementById('archive-date').value;
+
+      const bar = document.getElementById('archive-summary-bar');
+      bar.style.display = 'flex';
+      bar.innerHTML = `
+        <div class="summary-stat"><label>Date</label><p>${fmtDate(date)}</p></div>
+        <div class="summary-stat"><label>Groups</label><p>${groups.length}</p></div>
+        <div class="summary-stat"><label>Expected</label><p>${totalExpected || '–'}</p></div>
+        <div class="summary-stat"><label>People signed</label><p>${totalSigned}</p></div>
+        <div class="summary-stat"><label>No-shows</label><p>${totalNS}</p></div>
+      `;
+
+      let html = '';
+      for (const g of groups) {
+        const gSigs = sigs.filter(s => s.tour_group_id === g.id);
+        const gNS   = noshows.filter(n => n.tour_group_id === g.id);
+        const signedPpl = gSigs.reduce((a, s) => a + 1 + ((s.children || []).length), 0);
+        const nsPpl     = gNS.reduce((a, n) => a + (n.count || 0), 0);
+        const actIcon   = g.group_type === 'dog' ? '🐕' : '🏔️';
+
+        const guestRows = gSigs.map(s => `
+          <div class="archive-guest-row" onclick="openGuestModal(${JSON.stringify(JSON.stringify(s))})">
+            <span style="font-weight:500;font-size:0.87rem;color:var(--body);">${escHtml(s.guest_name)}</span>
+            <span style="font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;">${fmtDateTime(s.signed_at || s.created_at)}</span>
+          </div>`).join('');
+
+        const nsRows = gNS.map(n => `
+          <div style="padding:8px 18px;background:rgba(251,191,36,0.08);color:var(--amber);font-size:0.8rem;border-top:1px solid rgba(251,191,36,0.12);">
+            ⚠ ${n.count} no-show${n.count > 1 ? 's' : ''}${n.names ? ' — ' + escHtml(n.names) : ''}
+          </div>`).join('');
+
+        html += `<div class="collapsible">
+          <div class="collapsible-head" onclick="this.parentElement.classList.toggle('open')">
+            <h3>${actIcon} ${escHtml(g.name)} <span style="font-weight:400;color:var(--muted);font-size:0.85rem;">(${signedPpl} signed · ${nsPpl} no-show)</span></h3>
+            <span class="collapsible-arrow">▼</span>
+          </div>
+          <div class="collapsible-body">
+            ${guestRows}
+            ${nsRows}
+            ${!guestRows && !nsRows ? '<p style="padding:14px 18px;color:var(--muted);font-size:0.85rem;">No records</p>' : ''}
+          </div>
+        </div>`;
+      }
+
+      document.getElementById('archive-wrap').innerHTML = html;
+    }
+
+    function exportCSV() {
+      const { groups: allGroups, sigs, noshows } = archiveData;
+      if (!allGroups.length) { flash('Load a date first'); return; }
+
+      // Respect active group filter
+      const filterVal = document.getElementById('archive-group-filter')?.value || '';
+      const groups = filterVal ? allGroups.filter(g => g.id === filterVal) : allGroups;
+
+      const date = document.getElementById('archive-date').value;
+      const rows = [['Date','Group','First Name','Last Name','Date of Birth','Nationality','Email','Phone','Signed At','Waiver Version','Children Count','Children Details','No-show']];
+
+      const groupMap = Object.fromEntries(groups.map(g => [g.id, g.name]));
+
+      for (const s of sigs) {
+        const children = s.children || [];
+        rows.push([
+          date,
+          groupMap[s.tour_group_id] || '',
+          s.first_name, s.last_name,
+          s.date_of_birth || '',
+          s.nationality || '',
+          s.email || '',
+          s.phone || '',
+          s.signed_at || s.created_at || '',
+          s.waiver_version || '',
+          children.length,
+          children.map(c => c.name + ' (' + c.age + ')').join('; '),
+          'No'
+        ]);
+      }
+
+      // No-shows as rows
+      for (const n of noshows) {
+        const names = (n.names || '').split(',').map(x => x.trim()).filter(Boolean);
+        if (names.length) {
+          for (const name of names) {
+            rows.push([date, groupMap[n.tour_group_id] || '', name, '', '', '', '', '', n.recorded_at || '', '', '', '', 'Yes']);
+          }
+        } else {
+          for (let i = 0; i < n.count; i++) {
+            rows.push([date, groupMap[n.tour_group_id] || '', 'Unknown', '', '', '', '', '', n.recorded_at || '', '', '', '', 'Yes']);
+          }
+        }
+      }
+
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      const groupSlug = filterVal
+        ? '-' + (allGroups.find(g => g.id === filterVal)?.name || '').toLowerCase().replace(/\s+/g, '-')
+        : '';
+      a.href = url; a.download = `activenorth-${date}${groupSlug}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    // ── Waiver Manager ────────────────────────────────────────────────────────
+    async function loadWaiverManager() {
+      const { data: versions } = await db
+        .from('waiver_versions')
+        .select('*')
+        .order('uploaded_at', { ascending: false });
+
+      if (!versions) return;
+
+      const active = versions.find(v => v.is_active);
+      document.getElementById('waiver-active-info').innerHTML = active
+        ? `<p style="font-weight:600;color:var(--body);">Version ${escHtml(active.version)}</p>
+           <p style="font-size:0.82rem;color:var(--muted);">Activated: ${fmtDateTime(active.uploaded_at)}</p>`
+        : '<p style="color:var(--muted);">No active waiver found.</p>';
+
+      document.getElementById('waiver-history').innerHTML = versions.map(v => `
+        <li class="waiver-version-row">
+          <div>
+            <p style="font-weight:600;font-size:0.9rem;color:var(--body);">v${escHtml(v.version)}</p>
+            <p style="font-size:0.78rem;color:var(--muted);">${fmtDateTime(v.uploaded_at)}${v.uploaded_by ? ' — ' + escHtml(v.uploaded_by) : ''}</p>
+          </div>
+          ${v.is_active ? '<span class="version-active-badge">Active</span>' : ''}
+        </li>`).join('');
+    }
+
+    async function uploadWaiver() {
+      const version = document.getElementById('w-version').value.trim();
+      const content = document.getElementById('w-content').value.trim();
+      const err     = document.getElementById('waiver-upload-err');
+
+      if (!version) { err.textContent = 'Version number is required'; return; }
+      if (!content) { err.textContent = 'Waiver content is required'; return; }
+      err.textContent = '';
+
+      const confirmed = confirm(
+        `This will make v${version} the active version.\nAll new signatures will reference this version.\n\nContinue?`
+      );
+      if (!confirmed) return;
+
+      // Deactivate all
+      await db.from('waiver_versions').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+
+      // Insert new active
+      const { error } = await db.from('waiver_versions').insert({
+        version,
+        content_html: content,
+        is_active: true,
+        uploaded_by: session?.username || 'admin'
+      });
+
+      if (error) {
+        err.textContent = 'Error uploading: ' + error.message;
+        return;
+      }
+
+      document.getElementById('w-version').value = '';
+      document.getElementById('w-content').value = '';
+      flash('Waiver v' + version + ' is now active');
+      loadWaiverManager();
+    }
+
+    function previewWaiver() {
+      const content = document.getElementById('w-content').value.trim();
+      if (!content) { flash('Paste waiver content first'); return; }
+      document.getElementById('waiver-preview-content').innerHTML = content;
+      openModal('modal-waiver-preview');
+    }
+
+    // ── Security helper ───────────────────────────────────────────────────────
+    function escHtml(str) {
+      if (str == null) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

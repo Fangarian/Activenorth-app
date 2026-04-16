@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activenorth — Guest Declaration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ── Supabase config ──────────────────────────────────────────────────────
+    const SUPABASE_URL  = 'https://vgqnyapvvjtxguociscl.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZncW55YXB2dmp0eGd1b2Npc2NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTAzMTEsImV4cCI6MjA5MTkyNjMxMX0.7EEBKiWSAWz_2VBlnodRcJRBrgOL5jSdr_EJTdWLCts';
+    // ────────────────────────────────────────────────────────────────────────
+  </script>
+
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────────── */
+    :root {
+      --bg:        #F0F4F3;
+      --hero-bg:   #E1F5EE;
+      --card:      #FFFFFF;
+      --forest:    #04342C;
+      --teal:      #3a5a52;
+      --green:     #1D9E75;
+      --green-h:   #0F6E56;
+      --mint:      #9FE1CB;
+      --amber:     #BA7517;
+      --border:    #d4e4e0;
+      --body:      #1a1a1a;
+      --muted:     #6a8a82;
+      --radius:    12px;
+      --radius-lg: 20px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ────────────────────────────────────────────────────────── */
+    .site-header {
+      background: var(--forest);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.03em;
+    }
+
+    .logo-text span { color: var(--mint); }
+
+    /* ── Hero strip ────────────────────────────────────────────────────── */
+    .hero {
+      background: var(--hero-bg);
+      padding: 28px 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--forest);
+      line-height: 1.2;
+    }
+
+    .hero p {
+      margin-top: 6px;
+      color: var(--teal);
+      font-size: 0.92rem;
+    }
+
+    /* ── Step indicator ────────────────────────────────────────────────── */
+    .step-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 16px 20px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      position: relative;
+    }
+
+    .step-item:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 13px;
+      left: 60%;
+      right: -40%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+
+    .step-item.active:not(:last-child)::after,
+    .step-item.done:not(:last-child)::after {
+      background: var(--green);
+    }
+
+    .step-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .step-item.active .step-dot {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .step-item.done .step-dot {
+      background: var(--green-h);
+      color: #fff;
+    }
+
+    .step-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 4px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .step-item.active .step-label { color: var(--green); }
+    .step-item.done .step-label   { color: var(--teal); }
+
+    /* ── Main container ────────────────────────────────────────────────── */
+    .main {
+      flex: 1;
+      padding: 24px 20px 40px;
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Card ──────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Step screens ──────────────────────────────────────────────────── */
+    .step-screen { display: none; }
+    .step-screen.active { display: block; }
+
+    /* ── Waiver / Step 1 ───────────────────────────────────────────────── */
+    .waiver-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .waiver-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--forest);
+    }
+
+    .version-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      background: var(--hero-bg);
+      color: var(--teal);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+
+    .progress-bar-wrap {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.15s;
+    }
+
+    .waiver-box {
+      height: 340px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: var(--teal);
+      background: var(--bg);
+      scroll-behavior: smooth;
+    }
+
+    .waiver-box::-webkit-scrollbar { width: 5px; }
+    .waiver-box::-webkit-scrollbar-track { background: transparent; }
+    .waiver-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .scroll-hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 10px;
+      min-height: 20px;
+    }
+
+    /* ── Buttons ───────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 24px;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.18s, opacity 0.18s, transform 0.1s;
+      text-decoration: none;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--green);
+      color: #fff;
+      width: 100%;
+      margin-top: 20px;
+      padding: 16px 24px;
+      font-size: 1rem;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--green-h); }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--teal);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover { background: var(--hero-bg); }
+
+    /* ── Form fields ───────────────────────────────────────────────────── */
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--forest);
+      margin-bottom: 18px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--teal);
+      margin-bottom: 6px;
+      letter-spacing: 0.01em;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.92rem;
+      color: var(--body);
+      background: var(--card);
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--green);
+    }
+
+    .form-group input.error,
+    .form-group select.error {
+      border-color: #e53e3e;
+    }
+
+    .field-error {
+      font-size: 0.78rem;
+      color: #e53e3e;
+      margin-top: 4px;
+      min-height: 16px;
+    }
+
+    /* Nationality searchable wrapper */
+    .nat-wrapper { position: relative; }
+    .nat-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.92rem;
+      color: var(--body);
+      background: var(--card);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .nat-input:focus { border-color: var(--green); }
+    .nat-input.error { border-color: #e53e3e; }
+    .nat-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 8px 24px rgba(4,52,44,0.10);
+    }
+    .nat-dropdown.open { display: block; }
+    .nat-option {
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: var(--body);
+    }
+    .nat-option:hover, .nat-option.highlighted { background: var(--hero-bg); }
+
+    /* ── Activity / bus selectors ──────────────────────────────────────── */
+    .tile-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 0;
+    }
+
+    .tile {
+      border: 2px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      background: var(--card);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .tile:hover { border-color: var(--mint); background: var(--hero-bg); }
+
+    .tile.selected {
+      border-color: var(--green);
+      background: var(--hero-bg);
+    }
+
+    .tile-icon { font-size: 2rem; line-height: 1; }
+    .tile-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--forest);
+      text-align: center;
+    }
+    .tile-sub {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── Signature canvas ──────────────────────────────────────────────── */
+    .sig-wrap {
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    #sig-canvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .sig-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    /* ── Children section ──────────────────────────────────────────────── */
+    .children-toggle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      margin-top: 8px;
+      padding: 14px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .children-toggle:hover { background: var(--hero-bg); }
+
+    .toggle-cb {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .toggle-cb.checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .toggle-cb.checked::after {
+      content: '';
+      width: 6px;
+      height: 10px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg) translateY(-1px);
+      display: block;
+    }
+
+    .toggle-text {
+      font-size: 0.9rem;
+      color: var(--teal);
+      font-weight: 500;
+    }
+
+    .children-form { display: none; margin-top: 14px; }
+    .children-form.open { display: block; }
+
+    .child-row {
+      display: grid;
+      grid-template-columns: 1fr 80px 36px;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-icon:hover { background: #fee2e2; color: #e53e3e; border-color: #fca5a5; }
+
+    .btn-add-child {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--green);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 10px 14px;
+      width: 100%;
+      margin-top: 4px;
+      transition: background 0.15s;
+    }
+
+    .btn-add-child:hover { background: var(--hero-bg); }
+
+    /* ── Success screen ────────────────────────────────────────────────── */
+    .success-wrap {
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .success-icon {
+      width: 72px;
+      height: 72px;
+      background: var(--hero-bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 2rem;
+    }
+
+    .success-wrap h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--forest);
+      margin-bottom: 10px;
+    }
+
+    .success-summary {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: left;
+      margin: 20px 0;
+      font-size: 0.88rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-row:last-child { border-bottom: none; }
+    .summary-label { color: var(--muted); font-size: 0.8rem; }
+    .summary-val { color: var(--forest); font-weight: 600; font-size: 0.88rem; }
+
+    .return-note {
+      background: var(--forest);
+      color: var(--mint);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    /* ── Loading / error states ────────────────────────────────────────── */
+    .loading-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 14px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-state {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .error-state h3 {
+      color: #e53e3e;
+      font-family: 'Syne', sans-serif;
+      margin-bottom: 8px;
+    }
+
+    .error-state p { color: var(--muted); font-size: 0.88rem; }
+
+    /* ── Footer ────────────────────────────────────────────────────────── */
+    .site-footer {
+      background: var(--forest);
+      color: var(--mint);
+      text-align: center;
+      padding: 14px 20px;
+      font-size: 0.75rem;
+      opacity: 0.8;
+    }
+
+    /* ── Responsive ────────────────────────────────────────────────────── */
+    @media (max-width: 400px) {
+      .form-row { grid-template-columns: 1fr; }
+      .card { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <svg class="logo-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="18,2 34,11 34,25 18,34 2,25 2,11" fill="#1D9E75" stroke="#9FE1CB" stroke-width="1.5"/>
+      <polygon points="18,8 28,14 28,22 18,28 8,22 8,14" fill="none" stroke="#9FE1CB" stroke-width="1"/>
+    </svg>
+    <div class="logo-text">ACTIVE<span>NORTH</span></div>
+  </header>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Guest Declaration</h1>
+    <p>Skibotn Arctic Adventures — please complete before arrival</p>
+  </div>
+
+  <!-- Step bar -->
+  <div class="step-bar">
+    <div class="step-item active" id="step-ind-1">
+      <div class="step-dot">1</div>
+      <div class="step-label">Declaration</div>
+    </div>
+    <div class="step-item" id="step-ind-2">
+      <div class="step-dot">2</div>
+      <div class="step-label">Your Details</div>
+    </div>
+    <div class="step-item" id="step-ind-3">
+      <div class="step-dot">3</div>
+      <div class="step-label">Sign</div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- STEP 1 — Read declaration -->
+    <div class="step-screen active" id="screen-1">
+      <div id="waiver-loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading declaration…</p>
+      </div>
+
+      <div id="waiver-error" class="error-state" style="display:none;">
+        <h3>Could not load declaration</h3>
+        <p>Please check your connection and reload the page. If the problem persists, speak to your guide.</p>
+      </div>
+
+      <div id="waiver-content" style="display:none;">
+        <div class="card">
+          <div class="waiver-header">
+            <div class="waiver-title">Declaration &amp; Waiver</div>
+            <div class="version-badge" id="version-badge">v–</div>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+          </div>
+          <div class="waiver-box" id="waiver-box"></div>
+          <div class="scroll-hint" id="scroll-hint">↓ Scroll to read the full declaration</div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-next-1" disabled>
+          I have read the declaration — Continue
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2 — Personal details -->
+    <div class="step-screen" id="screen-2">
+
+      <div style="background:var(--hero-bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:0.8rem;color:var(--teal);line-height:1.5;">
+        🔒 <strong>Privacy notice:</strong> Activenorth collects your personal data to process your activity declaration and for safety purposes. Data is stored securely and not shared with third parties. You may request deletion by contacting us at <strong>booking@activenorth.no</strong>.
+      </div>
+
+      <div class="card">
+        <p class="section-title">Personal details</p>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="f-first">First name</label>
+            <input type="text" id="f-first" autocomplete="given-name" />
+            <div class="field-error" id="err-first"></div>
+          </div>
+          <div class="form-group">
+            <label for="f-last">Last name</label>
+            <input type="text" id="f-last" autocomplete="family-name" />
+            <div class="field-error" id="err-last"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="f-dob">Date of birth</label>
+          <input type="date" id="f-dob" autocomplete="bday" />
+          <div class="field-error" id="err-dob"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Nationality</label>
+          <div class="nat-wrapper">
+            <input type="text" class="nat-input" id="f-nat-input" placeholder="Search nationality…" autocomplete="off" />
+            <div class="nat-dropdown" id="nat-dropdown"></div>
+            <input type="hidden" id="f-nat-value" />
+          </div>
+          <div class="field-error" id="err-nat"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="f-email">Email</label>
+          <input type="email" id="f-email" autocomplete="email" />
+          <div class="field-error" id="err-email"></div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label for="f-phone">Phone number</label>
+          <input type="tel" id="f-phone" autocomplete="tel" placeholder="+47 …" />
+          <div class="field-error" id="err-phone"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Activity</p>
+        <div class="tile-group" id="tile-activity">
+          <div class="tile" data-val="dog" onclick="selectTile('activity', this)">
+            <div class="tile-icon">🐕</div>
+            <div class="tile-label">Dog Sledding</div>
+          </div>
+          <div class="tile" data-val="snow" onclick="selectTile('activity', this)">
+            <div class="tile-icon">🏔️</div>
+            <div class="tile-label">Snowmobile</div>
+          </div>
+        </div>
+        <div class="field-error" id="err-activity" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Departure from Tromsø</p>
+        <div class="tile-group" id="tile-bus">
+          <div class="tile" data-val="1" onclick="selectTile('bus', this)">
+            <div class="tile-icon">🌅</div>
+            <div class="tile-label">Daytime</div>
+            <div class="tile-sub">First bus from Tromsø</div>
+          </div>
+          <div class="tile" data-val="2" onclick="selectTile('bus', this)">
+            <div class="tile-icon">🌤️</div>
+            <div class="tile-label">Afternoon</div>
+            <div class="tile-sub">Second bus from Tromsø</div>
+          </div>
+        </div>
+        <div class="field-error" id="err-bus" style="margin-top:8px;"></div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-next-2" onclick="goToStep3()">
+        Continue to Signature
+      </button>
+    </div>
+
+    <!-- STEP 3 — Signature + children -->
+    <div class="step-screen" id="screen-3">
+      <div class="card">
+        <p class="section-title">Your signature</p>
+        <div class="sig-wrap">
+          <canvas id="sig-canvas"></canvas>
+        </div>
+        <div class="sig-actions">
+          <button class="btn btn-secondary" onclick="clearSig()" style="padding:8px 16px;font-size:0.85rem;">Clear</button>
+        </div>
+        <div class="field-error" id="err-sig" style="margin-top:4px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="children-toggle" id="children-toggle" onclick="toggleChildren()">
+          <div class="toggle-cb" id="children-cb"></div>
+          <div class="toggle-text">I am also signing on behalf of children</div>
+        </div>
+        <div class="children-form" id="children-form">
+          <div id="children-list"></div>
+          <button class="btn-add-child" onclick="addChild()">+ Add child</button>
+          <div class="field-error" id="err-children"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-submit" onclick="submitForm()">
+        Submit declaration
+      </button>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="step-screen" id="screen-success">
+      <div class="card">
+        <div class="success-wrap">
+          <div class="success-icon">✅</div>
+          <h2>Declaration signed!</h2>
+          <p style="color:var(--muted);font-size:0.9rem;">Your information has been recorded.</p>
+
+          <div class="success-summary" id="success-summary"></div>
+
+          <div class="return-note">
+            Please return this device to the guide
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    © Activenorth — Skibotn, Norway
+  </footer>
+
+  <script>
+    // ── Init Supabase ───────────────────────────────────────────────────────
+    const { createClient } = supabase;
+    let db;
+    try {
+      db = createClient(SUPABASE_URL, SUPABASE_ANON);
+    } catch(e) { db = null; }
+
+    function localDateStr() {
+      const d = new Date();
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    }
+
+    function offsetLocalDate(dateStr, days) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(y, m - 1, d + days);
+      return dt.getFullYear() + '-' +
+        String(dt.getMonth() + 1).padStart(2, '0') + '-' +
+        String(dt.getDate()).padStart(2, '0');
+    }
+
+    // ── State ───────────────────────────────────────────────────────────────
+    let activeWaiver = null;
+    let selectedActivity = null;
+    let selectedBus = null;
+    let sigHasData = false;
+
+    // ── Nationalities ───────────────────────────────────────────────────────
+    const NATIONALITIES = [
+      'Afghan','Albanian','Algerian','American','Andorran','Angolan','Argentinian',
+      'Armenian','Australian','Austrian','Azerbaijani','Bahamian','Bahraini','Bangladeshi',
+      'Barbadian','Belarusian','Belgian','Belizean','Beninese','Bhutanese','Bolivian',
+      'Bosnian','Brazilian','British','Bruneian','Bulgarian','Burkinabe','Burmese',
+      'Burundian','Cambodian','Cameroonian','Canadian','Cape Verdean','Chadian','Chilean',
+      'Chinese','Colombian','Congolese','Costa Rican','Croatian','Cuban','Cypriot','Czech',
+      'Danish','Dominican','Dutch','Ecuadorian','Egyptian','Emirati','Estonian','Ethiopian',
+      'Fijian','Finnish','French','Gambian','Georgian','German','Ghanaian','Greek',
+      'Guatemalan','Guinean','Haitian','Honduran','Hungarian','Icelandic','Indian',
+      'Indonesian','Iranian','Iraqi','Irish','Israeli','Italian','Ivorian','Jamaican',
+      'Japanese','Jordanian','Kazakh','Kenyan','Kuwaiti','Kyrgyz','Laotian','Latvian',
+      'Lebanese','Liberian','Libyan','Lithuanian','Luxembourgish','Macedonian','Malagasy',
+      'Malawian','Malaysian','Maldivian','Malian','Maltese','Mauritanian','Mauritian',
+      'Mexican','Moldovan','Mongolian','Montenegrin','Moroccan','Mozambican','Namibian',
+      'Nepalese','New Zealander','Nicaraguan','Nigerian','Norwegian','Omani','Pakistani',
+      'Palestinian','Panamanian','Paraguayan','Peruvian','Filipino','Polish','Portuguese',
+      'Qatari','Romanian','Russian','Rwandan','Saudi','Senegalese','Serbian','Sierra Leonean',
+      'Singaporean','Slovak','Slovenian','Somali','South African','South Korean','Spanish',
+      'Sri Lankan','Sudanese','Swazi','Swedish','Swiss','Syrian','Taiwanese','Tajik',
+      'Tanzanian','Thai','Togolese','Trinidadian','Tunisian','Turkish','Turkmen','Ugandan',
+      'Ukrainian','Uruguayan','Uzbek','Venezuelan','Vietnamese','Yemeni','Zambian','Zimbabwean'
+    ].sort();
+
+    // ── Load waiver ─────────────────────────────────────────────────────────
+    async function loadWaiver() {
+      try {
+        if (!db) throw new Error('No connection');
+
+        const { data, error } = await db
+          .from('waiver_versions')
+          .select('version, content_html')
+          .eq('is_active', true)
+          .single();
+
+        if (error || !data) throw new Error('No active waiver');
+
+        activeWaiver = data;
+        document.getElementById('waiver-loading').style.display = 'none';
+        document.getElementById('waiver-content').style.display = 'block';
+        document.getElementById('version-badge').textContent = 'v' + data.version;
+        document.getElementById('waiver-box').innerHTML = data.content_html;
+
+        setupScrollTracker();
+      } catch (e) {
+        document.getElementById('waiver-loading').style.display = 'none';
+        const errEl = document.getElementById('waiver-error');
+        errEl.style.display = 'block';
+        errEl.innerHTML = `
+          <h3>Declaration not available</h3>
+          <p>We could not load the declaration right now.<br>
+          Please hand this device to your guide and they will assist you.</p>
+        `;
+      }
+    }
+
+    // ── Scroll progress tracker ─────────────────────────────────────────────
+    function setupScrollTracker() {
+      const box = document.getElementById('waiver-box');
+      const fill = document.getElementById('progress-fill');
+      const hint = document.getElementById('scroll-hint');
+      const btn = document.getElementById('btn-next-1');
+
+      function onScroll() {
+        const pct = box.scrollTop / (box.scrollHeight - box.clientHeight);
+        const display = Math.min(100, Math.round(pct * 100));
+        fill.style.width = display + '%';
+
+        if (pct >= 0.90) {
+          hint.textContent = '✓ Declaration fully read';
+          hint.style.color = 'var(--green)';
+          btn.disabled = false;
+        } else {
+          hint.textContent = '↓ Scroll to read the full declaration (' + display + '%)';
+          hint.style.color = '';
+        }
+      }
+
+      box.addEventListener('scroll', onScroll);
+      // Trigger once in case content is short
+      setTimeout(() => {
+        if (box.scrollHeight <= box.clientHeight) {
+          fill.style.width = '100%';
+          hint.textContent = '✓ Declaration fully read';
+          hint.style.color = 'var(--green)';
+          btn.disabled = false;
+        }
+      }, 200);
+    }
+
+    // ── Step navigation ─────────────────────────────────────────────────────
+    function goToStep(n) {
+      document.querySelectorAll('.step-screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + n).classList.add('active');
+
+      for (let i = 1; i <= 3; i++) {
+        const ind = document.getElementById('step-ind-' + i);
+        ind.classList.remove('active', 'done');
+        if (i < n) ind.classList.add('done');
+        if (i === n) ind.classList.add('active');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.getElementById('btn-next-1').addEventListener('click', () => goToStep(2));
+
+    // ── Nationality searchable dropdown ─────────────────────────────────────
+    const natInput    = document.getElementById('f-nat-input');
+    const natDropdown = document.getElementById('nat-dropdown');
+    const natValue    = document.getElementById('f-nat-value');
+    let natHighlight  = -1;
+
+    function renderNatOptions(filter) {
+      const list = filter
+        ? NATIONALITIES.filter(n => n.toLowerCase().startsWith(filter.toLowerCase()))
+        : NATIONALITIES;
+      natDropdown.innerHTML = '';
+      list.slice(0, 50).forEach((nat, i) => {
+        const d = document.createElement('div');
+        d.className = 'nat-option';
+        d.textContent = nat;
+        d.addEventListener('mousedown', () => {
+          natInput.value  = nat;
+          natValue.value  = nat;
+          natDropdown.classList.remove('open');
+        });
+        natDropdown.appendChild(d);
+      });
+      natHighlight = -1;
+    }
+
+    natInput.addEventListener('input', () => {
+      renderNatOptions(natInput.value);
+      natDropdown.classList.add('open');
+      natValue.value = '';
+    });
+
+    natInput.addEventListener('focus', () => {
+      renderNatOptions(natInput.value);
+      natDropdown.classList.add('open');
+    });
+
+    natInput.addEventListener('keydown', (e) => {
+      const opts = natDropdown.querySelectorAll('.nat-option');
+      if (e.key === 'ArrowDown') {
+        natHighlight = Math.min(natHighlight + 1, opts.length - 1);
+      } else if (e.key === 'ArrowUp') {
+        natHighlight = Math.max(natHighlight - 1, 0);
+      } else if (e.key === 'Enter' && natHighlight >= 0) {
+        natInput.value  = opts[natHighlight].textContent;
+        natValue.value  = opts[natHighlight].textContent;
+        natDropdown.classList.remove('open');
+        e.preventDefault();
+        return;
+      } else if (e.key === 'Escape') {
+        natDropdown.classList.remove('open');
+        return;
+      }
+      opts.forEach((o, i) => o.classList.toggle('highlighted', i === natHighlight));
+      if (natHighlight >= 0) opts[natHighlight].scrollIntoView({ block: 'nearest' });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.nat-wrapper')) {
+        natDropdown.classList.remove('open');
+        // If typed but no exact match, clear hidden value
+        if (!NATIONALITIES.includes(natInput.value)) {
+          natValue.value = '';
+        }
+      }
+    });
+
+    // ── Tile selector ────────────────────────────────────────────────────────
+    function selectTile(type, el) {
+      const group = document.getElementById('tile-' + type);
+      group.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
+      el.classList.add('selected');
+      if (type === 'activity') selectedActivity = el.dataset.val;
+      if (type === 'bus')      selectedBus      = parseInt(el.dataset.val);
+    }
+
+    // ── Step 2 validation ────────────────────────────────────────────────────
+    function goToStep3() {
+      let ok = true;
+
+      function check(fieldId, errId, test, msg) {
+        const el = document.getElementById(fieldId);
+        const err = document.getElementById(errId);
+        if (!test(el ? el.value : '')) {
+          if (el) el.classList.add('error');
+          err.textContent = msg;
+          ok = false;
+        } else {
+          if (el) el.classList.remove('error');
+          err.textContent = '';
+        }
+      }
+
+      check('f-first',  'err-first',  v => v.trim().length >= 1,  'First name is required');
+      check('f-last',   'err-last',   v => v.trim().length >= 1,  'Last name is required');
+      check('f-dob',    'err-dob',    v => !!v,                   'Date of birth is required');
+      check('f-email',  'err-email',  v => /\S+@\S+\.\S+/.test(v), 'Valid email required');
+      check('f-phone',  'err-phone',  v => v.trim().length >= 5,  'Phone number is required');
+
+      // Nationality
+      const natErr = document.getElementById('err-nat');
+      if (!natValue.value) {
+        natInput.classList.add('error');
+        natErr.textContent = 'Select a nationality from the list';
+        ok = false;
+      } else {
+        natInput.classList.remove('error');
+        natErr.textContent = '';
+      }
+
+      if (!selectedActivity) {
+        document.getElementById('err-activity').textContent = 'Please select an activity';
+        ok = false;
+      } else {
+        document.getElementById('err-activity').textContent = '';
+      }
+
+      if (!selectedBus) {
+        document.getElementById('err-bus').textContent = 'Please select a departure time';
+        ok = false;
+      } else {
+        document.getElementById('err-bus').textContent = '';
+      }
+
+      if (ok) goToStep(3);
+    }
+
+    // ── Signature canvas ─────────────────────────────────────────────────────
+    const canvas = document.getElementById('sig-canvas');
+    const ctx    = canvas.getContext('2d');
+    let isDrawing = false;
+    let lastX = 0, lastY = 0;
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width  = rect.width  * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      ctx.strokeStyle = '#04342C';
+      ctx.lineWidth   = 2.5;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 50);
+
+    function getPos(e) {
+      const r = canvas.getBoundingClientRect();
+      if (e.touches) {
+        return [e.touches[0].clientX - r.left, e.touches[0].clientY - r.top];
+      }
+      return [e.clientX - r.left, e.clientY - r.top];
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      isDrawing = true;
+      [lastX, lastY] = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const [x, y] = getPos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      lastX = x; lastY = y;
+      sigHasData = true;
+    }
+
+    function endDraw(e) {
+      e.preventDefault();
+      isDrawing = false;
+    }
+
+    canvas.addEventListener('mousedown',  startDraw);
+    canvas.addEventListener('mousemove',  draw);
+    canvas.addEventListener('mouseup',    endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove',  draw,      { passive: false });
+    canvas.addEventListener('touchend',   endDraw,   { passive: false });
+
+    function clearSig() {
+      const r = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, r.width, r.height);
+      sigHasData = false;
+    }
+
+    // ── Children ─────────────────────────────────────────────────────────────
+    let childrenOpen = false;
+
+    function toggleChildren() {
+      childrenOpen = !childrenOpen;
+      document.getElementById('children-cb').classList.toggle('checked', childrenOpen);
+      const form = document.getElementById('children-form');
+      form.classList.toggle('open', childrenOpen);
+      if (childrenOpen && document.getElementById('children-list').children.length === 0) {
+        addChild();
+      }
+    }
+
+    let childCount = 0;
+    function addChild() {
+      childCount++;
+      const id = 'child-' + childCount;
+      const div = document.createElement('div');
+      div.className = 'child-row';
+      div.id = id;
+      div.innerHTML = `
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Child's name</label>
+          <input type="text" class="child-name" placeholder="Full name" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Age</label>
+          <input type="number" class="child-age" placeholder="Age" min="0" max="17" />
+        </div>
+        <button class="btn-icon" onclick="removeChild('${id}')" title="Remove">✕</button>
+      `;
+      document.getElementById('children-list').appendChild(div);
+    }
+
+    function removeChild(id) {
+      document.getElementById(id).remove();
+    }
+
+    function getChildren() {
+      const rows = document.querySelectorAll('#children-list .child-row');
+      const children = [];
+      for (const row of rows) {
+        const name = row.querySelector('.child-name').value.trim();
+        const age  = parseInt(row.querySelector('.child-age').value);
+        children.push({ name, age });
+      }
+      return children;
+    }
+
+    // ── Submit ────────────────────────────────────────────────────────────────
+    async function submitForm() {
+      const sigErr = document.getElementById('err-sig');
+
+      if (!sigHasData) {
+        sigErr.textContent = 'Please provide your signature';
+        return;
+      }
+      sigErr.textContent = '';
+
+      // Validate children if toggled
+      if (childrenOpen) {
+        const children = getChildren();
+        const badChild = children.find(c => !c.name || isNaN(c.age));
+        if (badChild) {
+          document.getElementById('err-children').textContent = 'Each child must have a name and age';
+          return;
+        }
+        document.getElementById('err-children').textContent = '';
+      }
+
+      const btn = document.getElementById('btn-submit');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      const first = document.getElementById('f-first').value.trim();
+      const last  = document.getElementById('f-last').value.trim();
+      const email = document.getElementById('f-email').value.trim();
+
+      // Check for duplicate submission (same name + email today or tomorrow)
+      try {
+        for (const checkDate of [localDateStr(), offsetLocalDate(localDateStr(), 1)]) {
+          const groupIds = [];
+          const { data: todayGroups } = await db.from('tour_groups').select('id').eq('date', checkDate);
+          if (todayGroups) groupIds.push(...todayGroups.map(g => g.id));
+          if (groupIds.length > 0) {
+            const { data: existing } = await db.from('signatures')
+              .select('id')
+              .eq('email', email)
+              .in('tour_group_id', groupIds)
+              .limit(1);
+            if (existing && existing.length > 0) {
+              btn.disabled = false;
+              btn.textContent = 'Submit declaration';
+              document.getElementById('err-sig').textContent =
+                'A declaration has already been submitted with this email address for your tour. If this is a mistake, please speak to your guide.';
+              return;
+            }
+          }
+        }
+      } catch (_) { /* allow submission if check fails */ }
+
+      // Find matching tour group
+      let tourGroupId = null;
+      try {
+        const today = localDateStr();
+        // Try today first, then tomorrow (guest may sign the evening before)
+        for (const searchDate of [today, offsetLocalDate(today, 1)]) {
+          const { data: groups, error: gErr } = await db
+            .from('tour_groups')
+            .select('id, name')
+            .eq('date', searchDate)
+            .eq('bus_number', selectedBus)
+            .eq('group_type', selectedActivity)
+            .order('sort_order', { ascending: true })
+            .limit(1);
+
+          if (!gErr && groups && groups.length > 0) {
+            tourGroupId = groups[0].id;
+            break;
+          }
+        }
+      } catch (_) {}
+
+      const children = childrenOpen ? getChildren() : [];
+      const sigData  = canvas.toDataURL('image/png');
+
+      const payload = {
+        guest_name:     first + ' ' + last,
+        first_name:     first,
+        last_name:      last,
+        date_of_birth:  document.getElementById('f-dob').value,
+        nationality:    natValue.value,
+        email:          document.getElementById('f-email').value.trim(),
+        phone:          document.getElementById('f-phone').value.trim(),
+        tour_group_id:  tourGroupId,
+        signature_data: sigData,
+        waiver_version: activeWaiver ? activeWaiver.version : '1.0',
+        children:       children,
+      };
+
+      try {
+        const { error } = await db.from('signatures').insert(payload);
+        if (error) throw error;
+        showSuccess(payload);
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Submit declaration';
+        sigErr.textContent = 'Submission failed — please check your connection and try again.';
+      }
+    }
+
+    function showSuccess(payload) {
+      document.querySelectorAll('.step-screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-success').classList.add('active');
+
+      const actLabel = payload.tour_group_id
+        ? (selectedActivity === 'dog' ? 'Dog Sledding' : 'Snowmobile')
+        : (selectedActivity === 'dog' ? 'Dog Sledding' : 'Snowmobile');
+      const busLabel = selectedBus === 1 ? 'Daytime (first bus)' : 'Afternoon (second bus)';
+
+      const ts = new Date().toLocaleString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+
+      let childrenLine = '';
+      if (payload.children && payload.children.length > 0) {
+        childrenLine = `
+          <div class="summary-row">
+            <span class="summary-label">Children</span>
+            <span class="summary-val">${payload.children.map(c => c.name + ' (' + c.age + ')').join(', ')}</span>
+          </div>`;
+      }
+
+      document.getElementById('success-summary').innerHTML = `
+        <div class="summary-row">
+          <span class="summary-label">Name</span>
+          <span class="summary-val">${payload.first_name} ${payload.last_name}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Date of birth</span>
+          <span class="summary-val">${new Date(payload.date_of_birth).toLocaleDateString('en-GB')}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Nationality</span>
+          <span class="summary-val">${payload.nationality}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Activity</span>
+          <span class="summary-val">${actLabel}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Departure</span>
+          <span class="summary-val">${busLabel}</span>
+        </div>
+        ${childrenLine}
+        <div class="summary-row">
+          <span class="summary-label">Signed at</span>
+          <span class="summary-val" style="font-family:'DM Mono',monospace;font-size:0.82rem;">${ts}</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Waiver version</span>
+          <span class="summary-val">v${payload.waiver_version}</span>
+        </div>
+      `;
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── Boot ──────────────────────────────────────────────────────────────────
+    loadWaiver();
+  </script>
+</body>
+</html>
