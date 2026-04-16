@@ -16,9 +16,9 @@
     // ────────────────────────────────────────────────────────────────────────
 
     // ── Auth config ──────────────────────────────────────────────────────────
-    const USERS = {
-      admin: { password: 'Activenorth2024', role: 'admin' },
-      camp:  { password: 'Activenorth2024',  role: 'camp'  }
+    const USERNAME_TO_EMAIL = {
+      admin: 'admin@activenorth.no',
+      camp:  'camp@activenorth.no'
     };
     // ────────────────────────────────────────────────────────────────────────
   </script>
@@ -1271,18 +1271,18 @@
     // ── Session ─────────────────────────────────────────────────────────────
     let session = null;
 
-    function doLogin() {
+    async function doLogin() {
       const user = document.getElementById('l-user').value.trim().toLowerCase();
       const pass = document.getElementById('l-pass').value;
       const err  = document.getElementById('login-error');
 
-      if (!USERS[user] || USERS[user].password !== pass) {
-        err.textContent = 'Invalid username or password';
-        return;
-      }
+      const email = USERNAME_TO_EMAIL[user];
+      if (!email) { err.textContent = 'Invalid username or password'; return; }
 
-      session = { username: user, role: USERS[user].role };
-      sessionStorage.setItem('an_session', JSON.stringify(session));
+      const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+      if (error) { err.textContent = 'Invalid username or password'; return; }
+
+      session = { username: user, role: data.user.user_metadata.role };
       initApp();
     }
 
@@ -1291,7 +1291,7 @@
     });
 
     function doLogout() {
-      sessionStorage.removeItem('an_session');
+      db.auth.signOut();
       session = null;
       document.getElementById('app-shell').style.display = 'none';
       document.getElementById('login-screen').style.display = 'flex';
@@ -1320,10 +1320,12 @@
     }
 
     // Check for existing session on load
-    window.addEventListener('DOMContentLoaded', () => {
-      const saved = sessionStorage.getItem('an_session');
-      if (saved) {
-        session = JSON.parse(saved);
+    window.addEventListener('DOMContentLoaded', async () => {
+      const { data: { session: authSession } } = await db.auth.getSession();
+      if (authSession) {
+        const username = Object.keys(USERNAME_TO_EMAIL)
+          .find(k => USERNAME_TO_EMAIL[k] === authSession.user.email) || authSession.user.email;
+        session = { username, role: authSession.user.user_metadata.role };
         initApp();
       }
     });
