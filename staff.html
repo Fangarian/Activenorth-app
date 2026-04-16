@@ -859,6 +859,21 @@
     .archive-guest-row:hover { background: rgba(148,196,235,0.04); }
     .archive-guest-row:last-child { border-bottom: none; }
 
+    /* ── Private group form ─────────────────────────────────────────────── */
+    .private-add-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      padding: 16px;
+      background: rgba(8,15,24,0.4);
+      border: 1px dashed rgba(148,196,235,0.18);
+      border-radius: var(--radius);
+      margin-top: 14px;
+    }
+
+    .private-add-form .form-group { margin-bottom: 0; flex: 1; min-width: 140px; }
+
     /* ── Plan a Day ─────────────────────────────────────────────────────── */
     .plan-activity-section { margin-bottom: 28px; }
 
@@ -1535,6 +1550,15 @@
         html += '</div>';
       }
 
+      const privateGs = groups.filter(g => g.bus_number == null);
+      if (privateGs.length) {
+        html += `<div class="groups-section-title">🔒 Private groups</div><div class="groups-grid">`;
+        for (const g of privateGs) {
+          html += renderGroupCard(g, sigs, noshows);
+        }
+        html += '</div>';
+      }
+
       document.getElementById('camp-groups-wrap').innerHTML = html;
       populateNoShowGroupSelect(groups);
     }
@@ -1766,6 +1790,25 @@
         </div>`;
       }
 
+      const privateGroups = groups.filter(g => g.bus_number == null);
+
+      function privateCardHTML(g) {
+        const val = g.expected_guests != null ? g.expected_guests : '';
+        return `<div class="plan-card">
+          <div class="plan-card-top">
+            <h3>${escHtml(g.name)}</h3>
+            <button onclick="deletePrivateGroup('${g.id}','${date}')" title="Delete group"
+              style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:0.8rem;padding:2px 6px;border-radius:4px;transition:all 0.15s;"
+              onmouseover="this.style.color='#F87171'" onmouseout="this.style.color='var(--muted)'">✕</button>
+          </div>
+          <div class="plan-input-wrap">
+            <label class="plan-input-label" for="plan-exp-${g.id}">Expected guests</label>
+            <input type="number" min="0" placeholder="0"
+              id="plan-exp-${g.id}" value="${val}" />
+          </div>
+        </div>`;
+      }
+
       let html = `
         <div class="plan-activity-section">
           <div class="plan-activity-heading">
@@ -1780,6 +1823,27 @@
             <h3>Snowmobile</h3>
           </div>
           <div class="plan-grid">${snowGroups.map(planCardHTML).join('')}</div>
+        </div>
+        <div class="plan-activity-section">
+          <div class="plan-activity-heading">
+            <span class="plan-activity-icon">🔒</span>
+            <h3>Private groups</h3>
+          </div>
+          <div class="plan-grid" id="private-groups-grid">${privateGroups.map(privateCardHTML).join('')}</div>
+          <div class="private-add-form">
+            <div class="form-group">
+              <label>Group name</label>
+              <input type="text" id="new-private-name" placeholder="e.g. Hansen family" />
+            </div>
+            <div class="form-group">
+              <label>Activity</label>
+              <select id="new-private-type" style="width:100%;padding:12px 14px;border:1.5px solid rgba(148,196,235,0.5);border-radius:var(--radius);font-family:'Rubik',sans-serif;font-size:0.92rem;color:var(--body);background:rgba(148,196,235,0.1);outline:none;color-scheme:dark;">
+                <option value="dog">Dog Sledding</option>
+                <option value="snow">Snowmobile</option>
+              </select>
+            </div>
+            <button class="btn btn-secondary" onclick="addPrivateGroup('${date}')" style="flex-shrink:0;">+ Add group</button>
+          </div>
         </div>
       `;
       document.getElementById('plan-groups-wrap').innerHTML = html;
@@ -1805,6 +1869,45 @@
       btn.disabled = false;
       btn.innerHTML = '💾 Save plan for this day';
       flash('Plan saved ✓ — Camp View will now show expected counts');
+    }
+
+    // ── Private group management ──────────────────────────────────────────────
+    async function addPrivateGroup(date) {
+      const nameInput = document.getElementById('new-private-name');
+      const typeInput = document.getElementById('new-private-type');
+      const name = nameInput.value.trim();
+      if (!name) { flash('Enter a group name'); return; }
+
+      const { data: existing } = await db
+        .from('tour_groups').select('sort_order').eq('date', date)
+        .order('sort_order', { ascending: false }).limit(1);
+      const maxOrder = existing?.[0]?.sort_order || 8;
+
+      const { error } = await db.from('tour_groups').insert({
+        date, name,
+        group_type: typeInput.value,
+        bus_number: null,
+        sort_order: maxOrder + 1
+      });
+
+      if (error) { flash('Error creating group'); return; }
+      nameInput.value = '';
+      ensuredDates.delete(date);
+      flash('Private group added');
+      loadPlanDay();
+    }
+
+    async function deletePrivateGroup(id, date) {
+      const { data: sigs } = await db.from('signatures').select('id').eq('tour_group_id', id).limit(1);
+      if (sigs && sigs.length > 0) {
+        alert('Cannot delete — this group already has signed guests. You can leave it as-is.');
+        return;
+      }
+      if (!confirm('Delete this private group?')) return;
+      await db.from('tour_groups').delete().eq('id', id);
+      ensuredDates.delete(date);
+      flash('Group deleted');
+      loadPlanDay();
     }
 
     // ── Archive ───────────────────────────────────────────────────────────────
