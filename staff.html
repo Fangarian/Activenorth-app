@@ -1386,6 +1386,8 @@
     }
 
     // ── Standard groups ─────────────────────────────────────────────────────
+    const ensuredDates = new Set();
+
     const STD_GROUPS = [
       { name: 'Dogsledding Day 1',       bus_number: 1, group_type: 'dog',  sort_order: 1 },
       { name: 'Dogsledding Day 2',       bus_number: 1, group_type: 'dog',  sort_order: 2 },
@@ -1398,6 +1400,8 @@
     ];
 
     async function ensureStdGroups(date) {
+      if (ensuredDates.has(date)) return;
+
       const { data: existing } = await db
         .from('tour_groups')
         .select('sort_order')
@@ -1409,6 +1413,8 @@
       if (toCreate.length > 0) {
         await db.from('tour_groups').insert(toCreate.map(g => ({ ...g, date })));
       }
+
+      ensuredDates.add(date);
     }
 
     // ── Camp View ────────────────────────────────────────────────────────────
