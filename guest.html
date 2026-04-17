@@ -466,6 +466,13 @@
       margin-top: 8px;
     }
 
+    .nav-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .nav-row .btn-primary { flex: 1; }
+
     .sig-wrap.sig-locked {
       border-color: var(--green);
       box-shadow: 0 0 0 2px rgba(29,158,117,0.2);
@@ -845,9 +852,10 @@
         <div class="field-error" id="err-private-group" style="margin-top:8px;"></div>
       </div>
 
-      <button class="btn btn-primary" id="btn-next-2" onclick="goToStep3()">
-        Continue to Signature
-      </button>
+      <div class="nav-row">
+        <button class="btn btn-secondary" onclick="goToStep(1)">← Back</button>
+        <button class="btn btn-primary" id="btn-next-2" onclick="goToStep3()">Continue to Signature</button>
+      </div>
     </div>
 
     <!-- STEP 3 — Signature + children -->
@@ -877,9 +885,10 @@
         <div class="field-error" id="err-sig" style="margin-top:4px;"></div>
       </div>
 
-      <button class="btn btn-primary" id="btn-submit" onclick="submitForm()" disabled>
-        Submit declaration
-      </button>
+      <div class="nav-row">
+        <button class="btn btn-secondary" onclick="leaveStep3()">← Back</button>
+        <button class="btn btn-primary" id="btn-submit" onclick="submitForm()" disabled>Submit declaration</button>
+      </div>
     </div>
 
     <!-- SUCCESS -->
@@ -932,8 +941,9 @@
     let activeWaiver = null;
     let selectedActivity = null;
     let selectedBus = null;
-    let sigHasData = false;
-    let sigLocked  = false;
+    let sigHasData    = false;
+    let sigLocked     = false;
+    let savedSigImage = null;
 
     // ── Nationalities ───────────────────────────────────────────────────────
     const NATIONALITIES = [
@@ -1038,7 +1048,26 @@
         if (i === n) ind.classList.add('active');
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (n === 3) setTimeout(resizeCanvas, 50);
+      if (n === 3) {
+        setTimeout(() => {
+          resizeCanvas();
+          if (savedSigImage) {
+            const img = new Image();
+            img.onload = () => {
+              const r = canvas.getBoundingClientRect();
+              ctx.drawImage(img, 0, 0, r.width, r.height);
+              sigHasData = true;
+              if (sigLocked) lockSig();
+            };
+            img.src = savedSigImage;
+          }
+        }, 50);
+      }
+    }
+
+    function leaveStep3() {
+      savedSigImage = sigHasData ? canvas.toDataURL() : null;
+      goToStep(2);
     }
 
     document.getElementById('btn-next-1').addEventListener('click', () => goToStep(2));
