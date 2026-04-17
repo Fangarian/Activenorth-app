@@ -1161,6 +1161,7 @@
           <div class="date-input-wrap">
             <input type="date" id="archive-date" onchange="loadArchive()" />
             <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+            <button class="btn btn-secondary" onclick="exportHTML()">Export Full Report</button>
           </div>
         </div>
 
@@ -2057,6 +2058,118 @@
         ? '-' + (allGroups.find(g => g.id === filterVal)?.name || '').toLowerCase().replace(/\s+/g, '-')
         : '';
       a.href = url; a.download = `activenorth-${date}${groupSlug}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    function exportHTML() {
+      const { groups: allGroups, sigs, noshows } = archiveData;
+      if (!allGroups.length) { flash('Load a date first'); return; }
+
+      const filterVal = document.getElementById('archive-group-filter')?.value || '';
+      const groups = (filterVal ? allGroups.filter(g => g.id === filterVal) : allGroups)
+        .slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+      const date = document.getElementById('archive-date').value;
+
+      const th = 'padding:8px 10px;text-align:left;border-bottom:1px solid #d4e4e0;font-weight:600;';
+
+      const groupSections = groups.map(g => {
+        const groupSigs = sigs.filter(s => s.tour_group_id === g.id);
+        const groupNoshows = noshows.filter(n => n.tour_group_id === g.id);
+
+        const guestRows = groupSigs.map(s => {
+          const children = s.children || [];
+          const childText = children.length
+            ? children.map(c => `${escHtml(c.name)} (${c.age})`).join(', ')
+            : '—';
+          const sigImg = s.signature_data
+            ? `<img src="${s.signature_data}" style="max-width:240px;height:80px;object-fit:contain;border:1px solid #d4e4e0;border-radius:6px;background:#fff;display:block;" />`
+            : '<span style="color:#999;">No signature</span>';
+          const signedAt = s.signed_at || s.created_at || '';
+          const signedFmt = signedAt ? new Date(signedAt).toLocaleString('no-NO', { timeZone: 'Europe/Oslo' }) : '—';
+          return `
+            <tr>
+              <td>${escHtml(s.first_name)} ${escHtml(s.last_name)}</td>
+              <td>${escHtml(s.date_of_birth || '—')}</td>
+              <td>${escHtml(s.nationality || '—')}</td>
+              <td>${escHtml(s.email || '—')}</td>
+              <td>${escHtml(s.phone || '—')}</td>
+              <td>${childText}</td>
+              <td>${signedFmt}</td>
+              <td>${sigImg}</td>
+            </tr>`;
+        }).join('');
+
+        const noshowRows = groupNoshows.map(n => {
+          const names = (n.names || '').split(',').map(x => x.trim()).filter(Boolean);
+          if (names.length) {
+            return names.map(name => `
+              <tr style="background:#fff8f0;">
+                <td>${escHtml(name)} <em style="color:#ba7517;">(no-show)</em></td>
+                <td colspan="7" style="color:#999;">—</td>
+              </tr>`).join('');
+          }
+          return Array.from({ length: n.count }, (_, i) => `
+            <tr style="background:#fff8f0;">
+              <td><em style="color:#ba7517;">Unknown no-show ${i + 1}</em></td>
+              <td colspan="7" style="color:#999;">—</td>
+            </tr>`).join('');
+        }).join('');
+
+        const totalGuests = groupSigs.reduce((sum, s) => sum + 1 + (s.children || []).length, 0);
+        const totalNoshows = groupNoshows.reduce((sum, n) => sum + n.count, 0);
+
+        return `
+          <section style="margin-bottom:40px;page-break-inside:avoid;">
+            <h2 style="font-family:sans-serif;font-size:1.1rem;background:#04342C;color:#fff;padding:10px 16px;border-radius:6px 6px 0 0;margin:0;">
+              ${escHtml(g.name)}
+              <span style="font-weight:400;font-size:0.85rem;margin-left:12px;opacity:0.8;">
+                ${totalGuests} guest${totalGuests !== 1 ? 's' : ''}${totalNoshows ? ` · ${totalNoshows} no-show${totalNoshows !== 1 ? 's' : ''}` : ''}
+              </span>
+            </h2>
+            <table style="width:100%;border-collapse:collapse;font-family:sans-serif;font-size:0.82rem;">
+              <thead>
+                <tr style="background:#e1f5ee;">
+                  <th style="${th}">Name</th>
+                  <th style="${th}">Date of Birth</th>
+                  <th style="${th}">Nationality</th>
+                  <th style="${th}">Email</th>
+                  <th style="${th}">Phone</th>
+                  <th style="${th}">Children</th>
+                  <th style="${th}">Signed At</th>
+                  <th style="${th}">Signature</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${guestRows || noshowRows ? guestRows + noshowRows : '<tr><td colspan="8" style="padding:12px;color:#999;text-align:center;">No guests</td></tr>'}
+              </tbody>
+            </table>
+          </section>`;
+      }).join('');
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Activenorth — ${date}</title>
+  <style>
+    body { margin: 32px; color: #1a1a1a; }
+    tr:nth-child(even) { background: #f8fbfa; }
+    td { padding: 8px 10px; border-bottom: 1px solid #e8f0ee; vertical-align: middle; }
+    @media print { section { page-break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <h1 style="font-family:sans-serif;color:#04342C;margin-bottom:4px;">Activenorth Guest Report</h1>
+  <p style="font-family:sans-serif;color:#6a8a82;margin-top:0;margin-bottom:32px;">Date: ${date} · Exported: ${new Date().toLocaleString('no-NO', { timeZone: 'Europe/Oslo' })}</p>
+  ${groupSections}
+</body>
+</html>`;
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `activenorth-${date}-full-report.html`;
       a.click(); URL.revokeObjectURL(url);
     }
 
