@@ -1484,13 +1484,23 @@
       try {
         const { error } = await db.from('signatures').insert(payload);
         if (error) throw error;
+        localStorage.removeItem('pending_declaration');
         showSuccess(payload);
       } catch (e) {
         console.error('Submission error:', e);
         btn.disabled = false;
         btn.textContent = 'Submit declaration';
-        const detail = e?.message ? ` (${e.message})` : '';
-        sigErr.textContent = 'Submission failed — please check your connection and try again.' + detail;
+        if (!navigator.onLine || e instanceof TypeError) {
+          try {
+            localStorage.setItem('pending_declaration', JSON.stringify(payload));
+            sigErr.textContent = 'No internet connection — your declaration has been saved on this device and will be sent automatically when the connection returns.';
+          } catch (_) {
+            sigErr.textContent = 'Submission failed — please check your connection and try again.';
+          }
+        } else {
+          const detail = e?.message ? ` (${e.message})` : '';
+          sigErr.textContent = 'Submission failed — please check your connection and try again.' + detail;
+        }
       }
     }
 
@@ -1553,6 +1563,35 @@
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // ── Offline retry ────────────────────────────────────────────────────────
+    async function retryPending() {
+      const raw = localStorage.getItem('pending_declaration');
+      if (!raw) return;
+      try {
+        const payload = JSON.parse(raw);
+        const { error } = await db.from('signatures').insert(payload);
+        if (error) throw error;
+        localStorage.removeItem('pending_declaration');
+        showSuccess(payload);
+      } catch (_) {}
+    }
+
+    window.addEventListener('online', retryPending);
+
+    // Show banner and retry if there's a pending declaration from a previous session
+    (function checkPending() {
+      if (!localStorage.getItem('pending_declaration')) return;
+      const banner = document.createElement('div');
+      banner.id = 'pending-banner';
+      banner.style.cssText = 'background:var(--amber);color:#fff;text-align:center;padding:10px 16px;font-size:0.85rem;font-weight:600;position:sticky;top:0;z-index:100;';
+      banner.textContent = 'Unsent declaration found — sending when connection is available…';
+      document.body.prepend(banner);
+      retryPending().then(() => {
+        const b = document.getElementById('pending-banner');
+        if (b) b.remove();
+      });
+    })();
 
     // ── Boot ──────────────────────────────────────────────────────────────────
     loadWaiver();
