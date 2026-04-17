@@ -1174,6 +1174,16 @@
           </select>
         </div>
 
+        <div id="archive-search-row" style="margin-bottom:16px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="archive-search" placeholder="Search by name or email within date…"
+              oninput="applyArchiveFilter()"
+              style="flex:1;padding:9px 14px;border:1px solid rgba(148,196,235,0.18);border-radius:var(--radius);font-family:'Rubik',sans-serif;font-size:0.85rem;background:rgba(8,15,24,0.8);color:var(--body);outline:none;" />
+            <button class="btn btn-secondary" onclick="searchAllDates()" style="white-space:nowrap;">Search all dates</button>
+          </div>
+          <div id="archive-search-results"></div>
+        </div>
+
         <div id="archive-wrap">
           <p style="color:var(--muted);font-size:0.9rem;">Select a date to view records.</p>
         </div>
@@ -1615,6 +1625,14 @@
               id="exp-${group.id}" placeholder="–" />
             <button class="btn-save-exp" onclick="saveExpected('${group.id}')">Save</button>
           </div>
+          ${expected != null ? (() => { const pct = Math.min(100, Math.round(signedPeople / expected * 100)); return `<div style="margin:6px 0 10px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--muted);margin-bottom:3px;">
+              <span>${signedPeople} / ${expected} signed</span><span>${pct}%</span>
+            </div>
+            <div style="height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${pct}%;background:${signedPeople >= expected ? 'var(--green)' : 'var(--amber)'};border-radius:3px;transition:width 0.4s;"></div>
+            </div>
+          </div>`; })() : ''}
           <ul class="guest-list">${guestRows}</ul>
           ${nsRows}
         </div>
@@ -1947,9 +1965,59 @@
 
     function applyArchiveFilter() {
       const sel = document.getElementById('archive-group-filter').value;
+      const q   = (document.getElementById('archive-search')?.value || '').trim().toLowerCase();
       const { groups, sigs, noshows } = archiveData;
       const filteredGroups = sel ? groups.filter(g => g.id === sel) : groups;
-      renderArchive(filteredGroups, sigs, noshows);
+      const filteredSigs   = q
+        ? sigs.filter(s => (s.guest_name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q))
+        : sigs;
+      renderArchive(filteredGroups, filteredSigs, noshows);
+    }
+
+    async function searchAllDates() {
+      const q = (document.getElementById('archive-search')?.value || '').trim();
+      if (q.length < 2) { flash('Type at least 2 characters to search'); return; }
+      const resultsEl = document.getElementById('archive-search-results');
+      resultsEl.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin-top:10px;">Searching…</p>';
+
+      const { data: sigs, error } = await db
+        .from('signatures')
+        .select('guest_name, email, signed_at, tour_group_id, tour_groups(date, name)')
+        .or(`guest_name.ilike.%${q}%,email.ilike.%${q}%`)
+        .order('signed_at', { ascending: false })
+        .limit(50);
+
+      if (error || !sigs?.length) {
+        resultsEl.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin-top:10px;">No results found.</p>';
+        return;
+      }
+
+      const rows = sigs.map(s => {
+        const date  = s.tour_groups?.date || '—';
+        const group = s.tour_groups?.name || '—';
+        const time  = fmtDateTime(s.signed_at);
+        return `<tr>
+          <td style="padding:7px 10px;">${escHtml(s.guest_name)}</td>
+          <td style="padding:7px 10px;">${escHtml(s.email)}</td>
+          <td style="padding:7px 10px;">${fmtDate(date)}</td>
+          <td style="padding:7px 10px;">${escHtml(group)}</td>
+          <td style="padding:7px 10px;">${time}</td>
+        </tr>`;
+      }).join('');
+
+      resultsEl.innerHTML = `
+        <div style="margin-top:12px;border:1px solid rgba(148,196,235,0.12);border-radius:var(--radius);overflow:hidden;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+            <thead><tr style="background:rgba(255,255,255,0.04);">
+              <th style="padding:7px 10px;text-align:left;font-weight:600;">Name</th>
+              <th style="padding:7px 10px;text-align:left;font-weight:600;">Email</th>
+              <th style="padding:7px 10px;text-align:left;font-weight:600;">Date</th>
+              <th style="padding:7px 10px;text-align:left;font-weight:600;">Group</th>
+              <th style="padding:7px 10px;text-align:left;font-weight:600;">Signed at</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
     }
 
     function renderArchive(groups, sigs, noshows) {
