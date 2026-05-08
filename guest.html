@@ -1544,6 +1544,13 @@
       const children = childrenOpen ? getChildren() : [];
       const sigData  = canvas.toDataURL('image/png');
 
+      const actLabel = selectedActivity === 'private'
+        ? (document.getElementById('private-group-select').options[document.getElementById('private-group-select').selectedIndex]?.text || 'Private group')
+        : (selectedActivity === 'dog' ? 'Dog Sledding' : 'Snowmobile');
+      const busLabel = selectedActivity === 'private'
+        ? 'Private group'
+        : (selectedBus === 1 ? 'Daytime (first bus)' : 'Afternoon (second bus)');
+
       const payload = {
         guest_name:     first + ' ' + last,
         first_name:     first,
@@ -1556,6 +1563,8 @@
         signature_data: sigData,
         waiver_version: activeWaiver ? activeWaiver.version : '1.0',
         children:       children,
+        activity_label: actLabel,
+        bus_label:      busLabel,
       };
 
       try {
@@ -1563,6 +1572,7 @@
         if (error) throw error;
         localStorage.removeItem('pending_declaration');
         showSuccess(payload);
+        sendConfirmationEmail(payload);
       } catch (e) {
         console.error('Submission error:', e);
         btn.disabled = false;
@@ -1691,6 +1701,22 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    async function sendConfirmationEmail(payload) {
+      try {
+        await fetch('/api/send-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to:        payload.email,
+            name:      payload.first_name,
+            activity:  payload.activity_label || '',
+            departure: payload.bus_label || '',
+            children:  payload.children || [],
+          }),
+        });
+      } catch (_) {}
+    }
+
     // ── Offline retry ────────────────────────────────────────────────────────
     let isRetrying = false;
     async function retryPending() {
@@ -1704,6 +1730,7 @@
         if (document.getElementById('screen-pending').classList.contains('active')) {
           showSuccess(payload);
         }
+        sendConfirmationEmail(payload);
         return true;
       } catch (_) {
         return false;
