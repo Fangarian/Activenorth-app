@@ -1549,7 +1549,7 @@
         : (selectedActivity === 'dog' ? 'Dog Sledding' : 'Snowmobile');
       const busLabel = selectedActivity === 'private'
         ? 'Private group'
-        : (selectedBus === 1 ? 'Daytime (first bus)' : 'Afternoon (second bus)');
+        : (selectedBus === 1 ? 'Daytime' : 'Afternoon');
 
       const payload = {
         guest_name:     first + ' ' + last,
@@ -1603,7 +1603,7 @@
         : (selectedActivity === 'dog' ? 'Dog Sledding' : 'Snowmobile');
       const busLabel = selectedActivity === 'private'
         ? 'Private group'
-        : (selectedBus === 1 ? 'Daytime (first bus)' : 'Afternoon (second bus)');
+        : (selectedBus === 1 ? 'Daytime' : 'Afternoon');
 
       const ts = new Date().toLocaleString('en-GB', {
         day: '2-digit', month: 'short', year: 'numeric',
@@ -1670,7 +1670,7 @@
         : (selectedActivity === 'dog' ? 'Dog Sledding' : 'Snowmobile');
       const busLabel = selectedActivity === 'private'
         ? 'Private group'
-        : (selectedBus === 1 ? 'Daytime (first bus)' : 'Afternoon (second bus)');
+        : (selectedBus === 1 ? 'Daytime' : 'Afternoon');
 
       let childrenLine = '';
       if (payload.children && payload.children.length > 0) {
