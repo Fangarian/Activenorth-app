@@ -1563,12 +1563,15 @@
         signature_data: sigData,
         waiver_version: activeWaiver ? activeWaiver.version : '1.0',
         children:       children,
-        activity_label: actLabel,
-        bus_label:      busLabel,
       };
 
+      // Email metadata — not stored in DB
+      payload._actLabel = actLabel;
+      payload._busLabel = busLabel;
+
       try {
-        const { error } = await db.from('signatures').insert(payload);
+        const { _actLabel, _busLabel, ...dbPayload } = payload;
+        const { error } = await db.from('signatures').insert(dbPayload);
         if (error) throw error;
         localStorage.removeItem('pending_declaration');
         showSuccess(payload);
@@ -1709,8 +1712,8 @@
           body: JSON.stringify({
             to:        payload.email,
             name:      payload.first_name,
-            activity:  payload.activity_label || '',
-            departure: payload.bus_label || '',
+            activity:  payload._actLabel || '',
+            departure: payload._busLabel || '',
             children:  payload.children || [],
           }),
         });
