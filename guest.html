@@ -546,6 +546,11 @@
       margin-bottom: 10px;
     }
 
+    .input-error {
+      border-color: #e53e3e !important;
+      background: #fff5f5;
+    }
+
     .btn-icon {
       width: 36px;
       height: 36px;
@@ -1334,6 +1339,22 @@
       }
     }
 
+    function validateChildRow(row) {
+      const name = row.querySelector('.child-name').value.trim();
+      const ageRaw = row.querySelector('.child-age').value;
+      const age = parseInt(ageRaw);
+      const errEl = row.querySelector('.child-error');
+      let msg = '';
+      if (name.length === 0) msg = 'Enter the child\'s full name';
+      else if (name.length < 2) msg = 'Enter a full name (at least 2 characters)';
+      else if (ageRaw === '') msg = 'Enter a valid age';
+      else if (isNaN(age) || age < 0 || age > 17) msg = 'Age must be between 0 and 17';
+      if (errEl) errEl.textContent = msg;
+      row.querySelector('.child-name').classList.toggle('input-error', msg !== '' && (name.length === 0 || name.length < 2));
+      row.querySelector('.child-age').classList.toggle('input-error', msg !== '' && (ageRaw === '' || isNaN(age) || age < 0 || age > 17));
+      return msg === '';
+    }
+
     let childCount = 0;
     function addChild() {
       childCount++;
@@ -1351,7 +1372,14 @@
           <input type="number" class="child-age" placeholder="Age" min="0" max="17" />
         </div>
         <button class="btn-icon" onclick="removeChild('${id}')" title="Remove">✕</button>
+        <div class="field-error child-error" style="grid-column:1/-1;margin-top:-4px;"></div>
       `;
+      const nameInput = div.querySelector('.child-name');
+      const ageInput  = div.querySelector('.child-age');
+      nameInput.addEventListener('blur',  () => validateChildRow(div));
+      ageInput.addEventListener('blur',   () => validateChildRow(div));
+      nameInput.addEventListener('input', () => { div.querySelector('.child-error').textContent = ''; nameInput.classList.remove('input-error'); });
+      ageInput.addEventListener('input',  () => { div.querySelector('.child-error').textContent = ''; ageInput.classList.remove('input-error'); });
       document.getElementById('children-list').appendChild(div);
     }
 
@@ -1382,10 +1410,14 @@
 
       // Validate children if toggled
       if (childrenOpen) {
-        const children = getChildren();
-        const badChild = children.find(c => !c.name || isNaN(c.age));
-        if (badChild) {
-          document.getElementById('err-children').textContent = 'Each child must have a name and age';
+        const rows = [...document.querySelectorAll('#children-list .child-row')];
+        if (rows.length === 0) {
+          document.getElementById('err-children').textContent = 'Add at least one child or uncheck the box';
+          return;
+        }
+        const allValid = rows.map(r => validateChildRow(r)).every(Boolean);
+        if (!allValid) {
+          document.getElementById('err-children').textContent = 'Please fix the errors above';
           return;
         }
         document.getElementById('err-children').textContent = '';
