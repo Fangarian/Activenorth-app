@@ -1097,6 +1097,7 @@
       <button class="tab-btn hidden" data-tab="plan" onclick="switchTab('plan')">📅 Plan a Day</button>
       <button class="tab-btn hidden" data-tab="archive" onclick="switchTab('archive')">📁 Archive</button>
       <button class="tab-btn hidden" data-tab="waiver" onclick="switchTab('waiver')">📄 Waiver Manager</button>
+      <button class="tab-btn hidden" data-tab="stats" onclick="switchTab('stats')">📊 Statistikk</button>
     </nav>
 
     <!-- ── TAB: Camp View ─────────────────────────────────────────────── -->
@@ -1221,6 +1222,25 @@
             <button class="btn btn-primary" onclick="uploadWaiver()">Upload and Activate</button>
           </div>
           <div id="waiver-upload-err" style="color:#F87171;font-size:0.82rem;margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: Statistikk ──────────────────────────────────────────────── -->
+    <div class="tab-pane" id="pane-stats">
+      <div class="pane-inner">
+        <div class="date-header">
+          <h2>Statistikk</h2>
+          <div class="date-input-wrap" style="flex-wrap:wrap;gap:8px;">
+            <label style="font-size:0.82rem;font-weight:600;color:var(--teal);align-self:center;">Fra</label>
+            <input type="date" id="stats-from" />
+            <label style="font-size:0.82rem;font-weight:600;color:var(--teal);align-self:center;">Til</label>
+            <input type="date" id="stats-to" />
+            <button class="btn btn-primary" onclick="loadStats()">Vis statistikk</button>
+          </div>
+        </div>
+        <div id="stats-wrap">
+          <p style="color:var(--muted);font-size:0.9rem;">Velg en datoperiode og trykk «Vis statistikk».</p>
         </div>
       </div>
     </div>
@@ -1410,6 +1430,7 @@
       if (name === 'plan')    { loadPlanDay(); }
       if (name === 'archive') { loadArchive(); }
       if (name === 'waiver')  { loadWaiverManager(); }
+      if (name === 'stats')   { initStatsPane(); }
     }
 
     // ── Standard groups ─────────────────────────────────────────────────────
@@ -2314,6 +2335,134 @@
       if (!content) { flash('Paste waiver content first'); return; }
       document.getElementById('waiver-preview-content').innerHTML = content;
       openModal('modal-waiver-preview');
+    }
+
+    // ── Statistikk ────────────────────────────────────────────────────────────
+    let statsInitialized = false;
+
+    function initStatsPane() {
+      if (statsInitialized) return;
+      statsInitialized = true;
+      const today = todayStr();
+      const monthAgo = offsetDate(today, -30);
+      document.getElementById('stats-from').value = monthAgo;
+      document.getElementById('stats-to').value   = today;
+    }
+
+    async function loadStats() {
+      const from = document.getElementById('stats-from').value;
+      const to   = document.getElementById('stats-to').value;
+      const wrap = document.getElementById('stats-wrap');
+      if (!from || !to) { wrap.innerHTML = '<p style="color:var(--amber);font-size:0.9rem;">Velg både fra- og til-dato.</p>'; return; }
+      if (from > to)    { wrap.innerHTML = '<p style="color:var(--amber);font-size:0.9rem;">Fra-dato kan ikke være etter til-dato.</p>'; return; }
+
+      wrap.innerHTML = '<div class="loading-row"><div class="spinner"></div></div>';
+
+      const { data: groups } = await db.from('tour_groups')
+        .select('id, date').gte('date', from).lte('date', to);
+
+      const groupIds = (groups || []).map(g => g.id);
+      if (!groupIds.length) {
+        wrap.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Ingen grupper funnet i valgt periode.</p>';
+        return;
+      }
+
+      const { data: sigs } = await db.from('signatures')
+        .select('tour_group_id, nationality, children')
+        .in('tour_group_id', groupIds);
+
+      const allSigs = sigs || [];
+      const groupDateMap = Object.fromEntries(groups.map(g => [g.id, g.date]));
+
+      const byDay = {};
+      const byNationality = {};
+
+      for (const sig of allSigs) {
+        const date = groupDateMap[sig.tour_group_id];
+        if (!byDay[date]) byDay[date] = { adults: 0, children: 0 };
+        byDay[date].adults++;
+        const childCount = Array.isArray(sig.children) ? sig.children.length : 0;
+        byDay[date].children += childCount;
+
+        const nat = sig.nationality ? sig.nationality.trim() : 'Ukjent';
+        byNationality[nat] = (byNationality[nat] || 0) + 1;
+      }
+
+      renderStats(byDay, byNationality, from, to);
+    }
+
+    function renderStats(byDay, byNationality, from, to) {
+      const wrap = document.getElementById('stats-wrap');
+
+      const dayKeys     = Object.keys(byDay).sort();
+      const totalAdults = dayKeys.reduce((s, d) => s + byDay[d].adults, 0);
+      const totalKids   = dayKeys.reduce((s, d) => s + byDay[d].children, 0);
+      const totalGuests = totalAdults + totalKids;
+      const avgPerDay   = dayKeys.length ? (totalGuests / dayKeys.length).toFixed(1) : '0';
+
+      // Summary bar
+      const summaryHtml = `
+        <div class="summary-bar" style="margin-bottom:20px;">
+          <div class="summary-stat"><label>Periode</label><p style="font-size:0.9rem;">${escHtml(from)} – ${escHtml(to)}</p></div>
+          <div class="summary-stat"><label>Dager med data</label><p>${dayKeys.length}</p></div>
+          <div class="summary-stat"><label>Totalt gjester</label><p>${totalGuests}</p></div>
+          <div class="summary-stat"><label>Herav barn</label><p>${totalKids}</p></div>
+          <div class="summary-stat"><label>Snitt / dag</label><p>${avgPerDay}</p></div>
+        </div>`;
+
+      // Per-day table
+      let dayRows = '';
+      for (const d of dayKeys) {
+        const { adults, children } = byDay[d];
+        const total = adults + children;
+        dayRows += `<tr>
+          <td style="font-family:'DM Mono',monospace;font-size:0.8rem;">${escHtml(fmtDate(d))}</td>
+          <td style="text-align:right;">${adults}</td>
+          <td style="text-align:right;">${children}</td>
+          <td style="text-align:right;font-weight:600;color:var(--mint);">${total}</td>
+        </tr>`;
+      }
+      const dayTableHtml = `
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Gjester per dag</div>
+          ${dayKeys.length === 0 ? '<p style="color:var(--muted);font-size:0.88rem;">Ingen data.</p>' : `
+          <table>
+            <thead><tr>
+              <th>Dato</th>
+              <th style="text-align:right;">Voksne</th>
+              <th style="text-align:right;">Barn</th>
+              <th style="text-align:right;">Totalt</th>
+            </tr></thead>
+            <tbody>${dayRows}</tbody>
+          </table>`}
+        </div>`;
+
+      // Nationality list
+      const natEntries = Object.entries(byNationality).sort((a, b) => b[1] - a[1]);
+      const maxCount   = natEntries.length ? natEntries[0][1] : 1;
+      let natRows = '';
+      for (const [nat, count] of natEntries) {
+        const pct = ((count / totalGuests) * 100).toFixed(1);
+        const barW = ((count / maxCount) * 100).toFixed(1);
+        natRows += `
+          <div style="display:flex;align-items:center;gap:14px;padding:8px 0;border-bottom:1px solid var(--border);">
+            <div style="flex:1;min-width:100px;font-size:0.88rem;color:var(--body);">${escHtml(nat)}</div>
+            <div style="flex:2;display:flex;align-items:center;gap:10px;">
+              <div style="flex:1;height:6px;background:rgba(148,196,235,0.1);border-radius:3px;overflow:hidden;">
+                <div style="width:${barW}%;height:100%;background:var(--mint);border-radius:3px;"></div>
+              </div>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--muted);min-width:36px;text-align:right;">${count}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--muted);min-width:46px;text-align:right;">${pct}%</div>
+          </div>`;
+      }
+      const natHtml = `
+        <div class="card">
+          <div class="card-title">Nasjonalitet</div>
+          ${natEntries.length === 0 ? '<p style="color:var(--muted);font-size:0.88rem;">Ingen data.</p>' : natRows}
+        </div>`;
+
+      wrap.innerHTML = summaryHtml + dayTableHtml + natHtml;
     }
 
     // ── Security helper ───────────────────────────────────────────────────────
