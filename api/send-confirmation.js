@@ -83,7 +83,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Activenorth <onboarding@resend.dev>',
+        from: 'Activenorth <noreply@activenorth.no>',
         to: [to],
         subject: 'Your Activenorth declaration – signed ✓',
         html,
