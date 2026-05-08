@@ -1237,6 +1237,7 @@
             <label style="font-size:0.82rem;font-weight:600;color:var(--teal);align-self:center;">Til</label>
             <input type="date" id="stats-to" />
             <button class="btn btn-primary" onclick="loadStats()">Vis statistikk</button>
+            <button class="btn btn-secondary" id="btn-stats-export" style="display:none;" onclick="exportStatsCSV()">⬇ Last ned CSV</button>
           </div>
         </div>
         <div id="stats-wrap">
@@ -2339,6 +2340,7 @@
 
     // ── Statistikk ────────────────────────────────────────────────────────────
     let statsInitialized = false;
+    let currentStatsData = null;
 
     function initStatsPane() {
       if (statsInitialized) return;
@@ -2392,6 +2394,8 @@
     }
 
     function renderStats(byDay, byNationality, from, to) {
+      currentStatsData = { byDay, byNationality, from, to };
+      document.getElementById('btn-stats-export').style.display = '';
       const wrap = document.getElementById('stats-wrap');
 
       const dayKeys     = Object.keys(byDay).sort();
@@ -2463,6 +2467,39 @@
         </div>`;
 
       wrap.innerHTML = summaryHtml + dayTableHtml + natHtml;
+    }
+
+    function exportStatsCSV() {
+      if (!currentStatsData) return;
+      const { byDay, byNationality, from, to } = currentStatsData;
+
+      const dayKeys     = Object.keys(byDay).sort();
+      const totalGuests = dayKeys.reduce((s, d) => s + byDay[d].adults + byDay[d].children, 0);
+
+      const rows = [];
+
+      rows.push(['Gjester per dag']);
+      rows.push(['Dato', 'Voksne', 'Barn', 'Totalt']);
+      for (const d of dayKeys) {
+        const { adults, children } = byDay[d];
+        rows.push([d, adults, children, adults + children]);
+      }
+
+      rows.push([]);
+      rows.push(['Nasjonalitet']);
+      rows.push(['Nasjonalitet', 'Antall', 'Prosent']);
+      const natEntries = Object.entries(byNationality).sort((a, b) => b[1] - a[1]);
+      for (const [nat, count] of natEntries) {
+        const pct = totalGuests ? ((count / totalGuests) * 100).toFixed(1) + '%' : '0%';
+        rows.push([nat, count, pct]);
+      }
+
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = `activenorth-statistikk-${from}-${to}.csv`;
+      a.click(); URL.revokeObjectURL(url);
     }
 
     // ── Security helper ───────────────────────────────────────────────────────
