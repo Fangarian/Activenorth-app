@@ -1998,7 +1998,7 @@
     }
 
     async function searchAllDates() {
-      const q = (document.getElementById('archive-search')?.value || '').trim();
+      const q = (document.getElementById('archive-search')?.value || '').trim().slice(0, 100);
       if (q.length < 2) { flash('Type at least 2 characters to search'); return; }
       const resultsEl = document.getElementById('archive-search-results');
       resultsEl.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;margin-top:10px;">Searching…</p>';
