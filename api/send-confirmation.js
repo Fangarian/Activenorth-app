@@ -1,15 +1,27 @@
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   const { to, name, activity, departure, children } = req.body;
 
   if (!to || !name) return res.status(400).json({ error: 'Missing required fields' });
+  if (!EMAIL_RE.test(to)) return res.status(400).json({ error: 'Invalid recipient address' });
 
   const childrenHtml = children && children.length > 0
     ? `<tr>
         <td style="padding:10px 0;border-bottom:1px solid #d4e4e0;color:#6a8a82;font-size:14px;width:130px;">Children</td>
         <td style="padding:10px 0;border-bottom:1px solid #d4e4e0;color:#04342C;font-size:14px;font-weight:600;">
-          ${children.map(c => `${c.name} (age&nbsp;${c.age})`).join('<br>')}
+          ${children.map(c => `${escHtml(c.name)} (age&nbsp;${escHtml(String(c.age))})`).join('<br>')}
         </td>
       </tr>`
     : '';
