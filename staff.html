@@ -2309,8 +2309,16 @@
       );
       if (!confirmed) return;
 
-      // Deactivate all
-      await db.from('waiver_versions').update({ is_active: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+      // Deactivate all existing active waivers first
+      const { error: deactivateErr } = await db
+        .from('waiver_versions')
+        .update({ is_active: false })
+        .eq('is_active', true);
+
+      if (deactivateErr) {
+        err.textContent = 'Could not deactivate existing waiver: ' + deactivateErr.message;
+        return;
+      }
 
       // Insert new active
       const { error } = await db.from('waiver_versions').insert({
