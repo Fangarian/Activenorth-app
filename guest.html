@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 
   <script>
     // ── Supabase config ──────────────────────────────────────────────────────
@@ -1027,7 +1028,7 @@
         document.getElementById('waiver-loading').style.display = 'none';
         document.getElementById('waiver-content').style.display = 'block';
         document.getElementById('version-badge').textContent = 'v' + data.version;
-        document.getElementById('waiver-box').innerHTML = data.content_html;
+        document.getElementById('waiver-box').innerHTML = DOMPurify.sanitize(data.content_html);
 
         setupScrollTracker();
       } catch (e) {
@@ -1037,7 +1038,7 @@
           activeWaiver = cached;
           document.getElementById('waiver-content').style.display = 'block';
           document.getElementById('version-badge').textContent = 'v' + cached.version;
-          document.getElementById('waiver-box').innerHTML = cached.content_html;
+          document.getElementById('waiver-box').innerHTML = DOMPurify.sanitize(cached.content_html);
           const notice = document.createElement('p');
           notice.style.cssText = 'font-size:0.75rem;color:var(--amber);text-align:center;margin:6px 0 0;';
           notice.textContent = 'Loaded from cache — may not be the latest version';
@@ -1250,7 +1251,7 @@
       check('f-first',  'err-first',  v => v.trim().length >= 1,  'First name is required');
       check('f-last',   'err-last',   v => v.trim().length >= 1,  'Last name is required');
       check('f-dob',    'err-dob',    v => !!v,                   'Date of birth is required');
-      check('f-email',  'err-email',  v => /\S+@\S+\.\S+/.test(v), 'Valid email required');
+      check('f-email',  'err-email',  v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v), 'Valid email required');
       check('f-phone',  'err-phone',  v => v.trim().length >= 5,  'Phone number is required');
 
       // Nationality
@@ -1582,7 +1583,7 @@
         btn.textContent = 'Submit declaration';
         if (!navigator.onLine || e instanceof TypeError) {
           try {
-            localStorage.setItem('pending_declaration', JSON.stringify(payload));
+              localStorage.setItem('pending_declaration', JSON.stringify(payload));
             showPending(payload);
           } catch (_) {
             sigErr.textContent = 'Submission failed — please check your connection and try again.';
